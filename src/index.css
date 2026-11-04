@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg-primary: #09090b;
+    --color-bg-card: #121215;
+    --color-bg-card-hover: #18181c;
+    --color-brand-red: #ff2a14;
+    --color-brand-emerald: #10b981;
+    --color-brand-amber: #f59e0b;
+  }
+
+  body {
+    background-color: #070709;
+    color: #f4f4f5;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Modern minimal dark glass & card styling */
+.card-premium {
+  background: #111114;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6);
+}
+
+.card-premium-interactive {
+  background: #111114;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-premium-interactive:hover {
+  background: #15151a;
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+.card-premium-interactive:active {
+  transform: scale(0.985);
+}
+
+.card-brand-glow {
+  background: linear-gradient(145deg, #181112 0%, #111114 100%);
+  border: 1px solid rgba(255, 42, 20, 0.25);
+  box-shadow: 0 12px 30px -8px rgba(255, 42, 20, 0.2);
+}
+
+/* Custom minimal dark scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Glowing pulses and highlights */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 26, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 26, 0, 0.7);
+  }
+}
+
+.glow-red {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* Select all text on focus for number inputs (better mobile editing) */
+input[type="number"]:focus {
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+/* Remove tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fade-in animation for modals and expanding cards */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* Prevent overscroll bounce on iOS */
+html, body {
+  overscroll-behavior: none;
+}
+
+/* Smooth momentum scrolling on iOS */
+.overflow-x-auto,
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
