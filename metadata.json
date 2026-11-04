@@ -1,0 +1,6 @@
+{
+  "name": "Personal Hub - Academia Inteligente",
+  "description": "Módulo de treino inteligente com dupla progressão, manequim digital de bio-feedback muscular, AI Coach e gestão de fichas de treino.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
