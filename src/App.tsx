@@ -77,9 +77,14 @@ export default function App() {
     setCompletedCelebrationSession(newSession);
   };
 
-  // Adicionar Medidas
+  // Adicionar ou Atualizar Medidas
   const handleAddMeasurement = (newMeas: BodyMeasurement) => {
     const updated = FitnessStorageService.addMeasurement(newMeas);
+    setMeasurements(updated);
+  };
+
+  const handleDeleteMeasurement = (id: string) => {
+    const updated = FitnessStorageService.deleteMeasurement(id);
     setMeasurements(updated);
   };
 
@@ -153,6 +158,7 @@ export default function App() {
           <FigmaEvolutionScreen
             measurements={measurements}
             onAddMeasurement={handleAddMeasurement}
+            onDeleteMeasurement={handleDeleteMeasurement}
           />
         )}
 

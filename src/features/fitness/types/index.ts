@@ -110,6 +110,7 @@ export interface BodyMeasurement {
   biceps_right_cm?: number;
   biceps_left_cm?: number;
   chest_cm?: number;
+  shoulders_cm?: number;
   arms_cm?: number;
   arm_right_cm?: number;
   arm_left_cm?: number;

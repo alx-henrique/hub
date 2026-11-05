@@ -3,42 +3,50 @@ import { BodyMeasurement } from '../types';
 import { FitnessStorageService } from '../services/storageService';
 import {
   Ruler,
-  TrendingUp,
-  Plus,
-  Scale,
   Calendar,
-  CheckCircle2,
+  Scale,
+  Plus,
   X,
-  ChevronRight,
+  TrendingUp,
+  Dumbbell,
+  Edit2,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
   YAxis,
+  ResponsiveContainer,
   Tooltip,
   CartesianGrid,
-  Legend,
 } from 'recharts';
 
 interface FigmaEvolutionScreenProps {
   measurements: BodyMeasurement[];
   onAddMeasurement: (m: BodyMeasurement) => void;
+  onDeleteMeasurement?: (id: string) => void;
 }
 
 export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
   measurements,
   onAddMeasurement,
+  onDeleteMeasurement,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMeasurementId, setEditingMeasurementId] = useState<string | null>(null);
+  const [showHistoryList, setShowHistoryList] = useState(false);
+
   const [selectedMetric, setSelectedMetric] = useState<
     | 'weight_kg'
+    | 'shoulders_cm'
+    | 'chest_cm'
     | 'biceps_right_cm'
     | 'biceps_left_cm'
     | 'arm_right_cm'
     | 'arm_left_cm'
-    | 'chest_cm'
     | 'waist_cm'
     | 'abdomen_cm'
     | 'glutes_cm'
@@ -50,46 +58,109 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
 
   const [selectedExercise, setSelectedExercise] = useState<string>('ex-bench-press');
 
-  // Form de inclusão de medidas com bilaterais separados (D / E) e Data da medição
-  const [formData, setFormData] = useState({
+  // Estado do formulário de inclusão/edição
+  const initialFormState = {
     date: new Date().toISOString().split('T')[0],
     weight_kg: 80,
-    // Bíceps separado de Braço
+    shoulders_cm: 115,
+    chest_cm: 102,
     biceps_right_cm: 37,
     biceps_left_cm: 36.5,
-    // Braço (circunferência total do braço)
     arm_right_cm: 38,
     arm_left_cm: 37.5,
-    // Tronco e Quadril
-    chest_cm: 102,
     waist_cm: 82,
     abdomen_cm: 84,
     glutes_cm: 100,
-    // Membros Inferiores
     thigh_right_cm: 58,
     thigh_left_cm: 58,
     calf_right_cm: 38,
     calf_left_cm: 37.5,
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  // Abrir modal para novo registro
+  const handleOpenNew = () => {
+    setEditingMeasurementId(null);
+    const latest = measurements[0];
+    if (latest) {
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        weight_kg: latest.weight_kg || 80,
+        shoulders_cm: latest.shoulders_cm || 115,
+        chest_cm: latest.chest_cm || 102,
+        biceps_right_cm: latest.biceps_right_cm || latest.biceps_cm || 37,
+        biceps_left_cm: latest.biceps_left_cm || latest.biceps_cm || 36.5,
+        arm_right_cm: latest.arm_right_cm || latest.arms_cm || 38,
+        arm_left_cm: latest.arm_left_cm || latest.arms_cm || 37.5,
+        waist_cm: latest.waist_cm || 82,
+        abdomen_cm: latest.abdomen_cm || 84,
+        glutes_cm: latest.glutes_cm || 100,
+        thigh_right_cm: latest.thigh_right_cm || latest.thighs_cm || 58,
+        thigh_left_cm: latest.thigh_left_cm || latest.thighs_cm || 58,
+        calf_right_cm: latest.calf_right_cm || latest.calves_cm || 38,
+        calf_left_cm: latest.calf_left_cm || latest.calves_cm || 37.5,
+      });
+    } else {
+      setFormData(initialFormState);
+    }
+    setIsModalOpen(true);
+  };
+
+  // Abrir modal para editar registro existente
+  const handleEditMeasurement = (m: BodyMeasurement) => {
+    setEditingMeasurementId(m.id);
+    const dateFormatted = m.date || (m.recorded_at ? m.recorded_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+    setFormData({
+      date: dateFormatted,
+      weight_kg: m.weight_kg || 0,
+      shoulders_cm: m.shoulders_cm || 0,
+      chest_cm: m.chest_cm || 0,
+      biceps_right_cm: m.biceps_right_cm || m.biceps_cm || 0,
+      biceps_left_cm: m.biceps_left_cm || m.biceps_cm || 0,
+      arm_right_cm: m.arm_right_cm || m.arms_cm || 0,
+      arm_left_cm: m.arm_left_cm || m.arms_cm || 0,
+      waist_cm: m.waist_cm || 0,
+      abdomen_cm: m.abdomen_cm || 0,
+      glutes_cm: m.glutes_cm || 0,
+      thigh_right_cm: m.thigh_right_cm || m.thighs_cm || 0,
+      thigh_left_cm: m.thigh_left_cm || m.thighs_cm || 0,
+      calf_right_cm: m.calf_right_cm || m.calves_cm || 0,
+      calf_left_cm: m.calf_left_cm || m.calves_cm || 0,
+    });
+    setIsModalOpen(true);
+  };
+
+  // Excluir registro
+  const handleDelete = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir esta medição?')) {
+      if (onDeleteMeasurement) {
+        onDeleteMeasurement(id);
+      } else {
+        FitnessStorageService.deleteMeasurement(id);
+      }
+    }
+  };
 
   // Dados para o Gráfico de Medidas
   const chartData = [...measurements]
-    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
+    .sort((a, b) => new Date(a.date || a.recorded_at).getTime() - new Date(b.date || b.recorded_at).getTime())
     .map((m) => ({
-      date: new Date(m.recorded_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      date: new Date(m.date || m.recorded_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
       weight_kg: m.weight_kg,
-      biceps_right_cm: m.biceps_right_cm || m.biceps_cm || 37,
-      biceps_left_cm: m.biceps_left_cm || m.biceps_cm || 36.5,
-      arm_right_cm: m.arm_right_cm || m.arms_cm || 38,
-      arm_left_cm: m.arm_left_cm || m.arms_cm || 37.5,
-      chest_cm: m.chest_cm || 100,
-      waist_cm: m.waist_cm || 82,
-      abdomen_cm: m.abdomen_cm || 84,
-      glutes_cm: m.glutes_cm || 100,
-      thigh_right_cm: m.thigh_right_cm || m.thighs_cm || 58,
-      thigh_left_cm: m.thigh_left_cm || m.thighs_cm || 58,
-      calf_right_cm: m.calf_right_cm || m.calves_cm || 38,
-      calf_left_cm: m.calf_left_cm || m.calves_cm || 37.5,
+      shoulders_cm: m.shoulders_cm || 0,
+      biceps_right_cm: m.biceps_right_cm || m.biceps_cm || 0,
+      biceps_left_cm: m.biceps_left_cm || m.biceps_cm || 0,
+      arm_right_cm: m.arm_right_cm || m.arms_cm || 0,
+      arm_left_cm: m.arm_left_cm || m.arms_cm || 0,
+      chest_cm: m.chest_cm || 0,
+      waist_cm: m.waist_cm || 0,
+      abdomen_cm: m.abdomen_cm || 0,
+      glutes_cm: m.glutes_cm || 0,
+      thigh_right_cm: m.thigh_right_cm || m.thighs_cm || 0,
+      thigh_left_cm: m.thigh_left_cm || m.thighs_cm || 0,
+      calf_right_cm: m.calf_right_cm || m.calves_cm || 0,
+      calf_left_cm: m.calf_left_cm || m.calves_cm || 0,
     }));
 
   // Histórico de Cargas do Exercício Selecionado
@@ -112,11 +183,12 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
       ? new Date(`${formData.date}T12:00:00`).toISOString()
       : new Date().toISOString();
 
-    const newMeasurement: BodyMeasurement = {
-      id: `meas-${Date.now()}`,
+    const measurementToSave: BodyMeasurement = {
+      id: editingMeasurementId || `meas-${Date.now()}`,
       recorded_at: recordedTimestamp,
       date: formData.date || new Date().toISOString().split('T')[0],
       weight_kg: Number(formData.weight_kg),
+      shoulders_cm: Number(formData.shoulders_cm),
       biceps_right_cm: Number(formData.biceps_right_cm),
       biceps_left_cm: Number(formData.biceps_left_cm),
       biceps_cm: Number(formData.biceps_right_cm),
@@ -133,19 +205,22 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
       calf_right_cm: Number(formData.calf_right_cm),
       calf_left_cm: Number(formData.calf_left_cm),
       calves_cm: Number(formData.calf_right_cm),
-      notes: 'Registro via app',
+      notes: editingMeasurementId ? 'Editado via app' : 'Registro via app',
     };
-    onAddMeasurement(newMeasurement);
+
+    onAddMeasurement(measurementToSave);
     setIsModalOpen(false);
+    setEditingMeasurementId(null);
   };
 
   const metricLabels: Record<string, string> = {
     weight_kg: 'Peso Corporal (kg)',
+    shoulders_cm: 'Ombros (cm)',
+    chest_cm: 'Peitoral (cm)',
     biceps_right_cm: 'Bíceps Direito (cm)',
     biceps_left_cm: 'Bíceps Esquerdo (cm)',
     arm_right_cm: 'Braço Direito (cm)',
     arm_left_cm: 'Braço Esquerdo (cm)',
-    chest_cm: 'Peitoral (cm)',
     waist_cm: 'Cintura (cm)',
     abdomen_cm: 'Abdômen (cm)',
     glutes_cm: 'Glúteos (cm)',
@@ -167,9 +242,9 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
         </p>
       </div>
 
-      {/* 1. BOTÃO PARA REGISTRAR MEDIDAS (Design Premium Dark) */}
+      {/* 1. BOTÃO PARA REGISTRAR MEDIDAS */}
       <button
-        onClick={() => setIsModalOpen(true)}
+        onClick={handleOpenNew}
         className="w-full text-left rounded-3xl bg-gradient-to-r from-[#181510] to-[#121215] border border-amber-500/30 p-5 shadow-lg hover:border-amber-500/50 transition-all flex items-center justify-between group active:scale-[0.99] cursor-pointer"
       >
         <div className="flex items-center gap-3.5">
@@ -181,7 +256,7 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
               Registrar Novas Medidas
             </span>
             <span className="text-xs text-zinc-400 mt-0.5 block">
-              Peso, bíceps, braço, tórax, cintura, coxas e panturrilhas
+              Peso, ombros, peitoral, braços, cintura, coxas e panturrilhas
             </span>
           </div>
         </div>
@@ -209,11 +284,12 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
             className="bg-zinc-800 text-xs font-semibold text-white px-2.5 py-1.5 rounded-xl border border-white/10 focus:outline-none max-w-[150px] truncate"
           >
             <option value="weight_kg">Peso (kg)</option>
+            <option value="shoulders_cm">Ombros (cm)</option>
+            <option value="chest_cm">Peitoral (cm)</option>
             <option value="biceps_right_cm">Bíceps D (cm)</option>
             <option value="biceps_left_cm">Bíceps E (cm)</option>
             <option value="arm_right_cm">Braço D (cm)</option>
             <option value="arm_left_cm">Braço E (cm)</option>
-            <option value="chest_cm">Peito (cm)</option>
             <option value="waist_cm">Cintura (cm)</option>
             <option value="abdomen_cm">Abdômen (cm)</option>
             <option value="glutes_cm">Glúteos (cm)</option>
@@ -258,7 +334,85 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
         </div>
       </div>
 
-      {/* 3. GRÁFICO COM EVOLUÇÃO DOS PESOS UTILIZADOS */}
+      {/* 3. HISTÓRICO E EDIÇÃO DE MEDIDAS ANTIGAS */}
+      <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3 shadow-lg">
+        <div
+          onClick={() => setShowHistoryList(!showHistoryList)}
+          className="flex items-center justify-between cursor-pointer select-none"
+        >
+          <div>
+            <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2">
+              <span>Histórico de Medições</span>
+              <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-400">
+                {measurements.length}
+              </span>
+            </h3>
+            <p className="text-[11px] text-zinc-400">
+              Clique em qualquer medição antiga para editar valores ou datas
+            </p>
+          </div>
+          <button className="p-1 rounded-xl bg-zinc-800 text-zinc-400">
+            {showHistoryList ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {showHistoryList && (
+          <div className="flex flex-col gap-2.5 pt-2">
+            {measurements.length === 0 ? (
+              <p className="text-xs text-zinc-500 text-center py-4">Nenhum registro anterior.</p>
+            ) : (
+              measurements.map((m) => (
+                <div
+                  key={m.id}
+                  className="p-3.5 rounded-2xl bg-zinc-900/60 border border-white/5 flex items-center justify-between hover:border-amber-500/30 transition-all"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white">
+                        {new Date(m.date || m.recorded_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </span>
+                      <span className="text-[11px] font-black text-amber-400">
+                        {m.weight_kg} kg
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-zinc-400">
+                      {m.shoulders_cm ? <span>Ombros: <strong className="text-zinc-200">{m.shoulders_cm}cm</strong></span> : null}
+                      {m.chest_cm ? <span>Peito: <strong className="text-zinc-200">{m.chest_cm}cm</strong></span> : null}
+                      {m.arm_right_cm || m.arms_cm ? (
+                        <span>Braço D: <strong className="text-zinc-200">{m.arm_right_cm || m.arms_cm}cm</strong></span>
+                      ) : null}
+                      {m.waist_cm ? <span>Cintura: <strong className="text-zinc-200">{m.waist_cm}cm</strong></span> : null}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleEditMeasurement(m)}
+                      title="Editar esta medição"
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-amber-500 hover:text-black text-zinc-300 transition-colors"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(m.id)}
+                      title="Excluir medição"
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 4. GRÁFICO COM EVOLUÇÃO DOS PESOS UTILIZADOS */}
       <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
@@ -322,21 +476,26 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
         </div>
       </div>
 
-      {/* MODAL / DRAWER: REGISTRAR NOVAS MEDIDAS */}
+      {/* MODAL / DRAWER: REGISTRAR OU EDITAR MEDIDAS */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="w-full max-w-md bg-[#18181b] rounded-t-3xl sm:rounded-3xl border border-white/10 p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-black text-white">
-                  Registrar Medidas Corporais
+                  {editingMeasurementId ? 'Editar Medidas Corporais' : 'Registrar Medidas Corporais'}
                 </h3>
                 <p className="text-[11px] text-zinc-400">
-                  Medição bilateral completa (Direito / Esquerdo)
+                  {editingMeasurementId
+                    ? 'Altere os valores ou a data e clique em salvar'
+                    : 'Medição completa com ombros, tronco e membros bilaterais'}
                 </p>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingMeasurementId(null);
+                }}
                 className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
@@ -375,6 +534,69 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
                     onChange={(e) => setFormData({ ...formData, weight_kg: parseFloat(e.target.value) || 0 })}
                     className="w-full mt-1.5 px-3 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white font-black text-sm focus:outline-none focus:border-red-500"
                   />
+                </div>
+              </div>
+
+              {/* Seção Tronco & Cintura Escapular (com Ombros) */}
+              <div className="p-3.5 rounded-2xl bg-zinc-900/40 border border-white/5 flex flex-col gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                  Tronco & Ombros
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-300 flex items-center justify-between">
+                      <span>Ombros (cm)</span>
+                      <span className="text-[9px] text-amber-400 font-bold uppercase">Novo</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="Ex: 115"
+                      value={formData.shoulders_cm}
+                      onChange={(e) => setFormData({ ...formData, shoulders_cm: parseFloat(e.target.value) || 0 })}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-amber-500/30 text-white font-bold text-sm focus:border-amber-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-400">Peitoral (cm)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={formData.chest_cm}
+                      onChange={(e) => setFormData({ ...formData, chest_cm: parseFloat(e.target.value) || 0 })}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-400">Cintura (cm)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={formData.waist_cm}
+                      onChange={(e) => setFormData({ ...formData, waist_cm: parseFloat(e.target.value) || 0 })}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-400">Abdômen (cm)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={formData.abdomen_cm}
+                      onChange={(e) => setFormData({ ...formData, abdomen_cm: parseFloat(e.target.value) || 0 })}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[11px] font-semibold text-zinc-400">Glúteos (cm)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={formData.glutes_cm}
+                      onChange={(e) => setFormData({ ...formData, glutes_cm: parseFloat(e.target.value) || 0 })}
+                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -500,60 +722,11 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
                 </div>
               </div>
 
-              {/* Seção Tronco e Quadril */}
-              <div className="p-3.5 rounded-2xl bg-zinc-900/40 border border-white/5 flex flex-col gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
-                  Tronco & Quadril
-                </span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-semibold text-zinc-400">Peitoral (cm)</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={formData.chest_cm}
-                      onChange={(e) => setFormData({ ...formData, chest_cm: parseFloat(e.target.value) || 0 })}
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold text-zinc-400">Cintura (cm)</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={formData.waist_cm}
-                      onChange={(e) => setFormData({ ...formData, waist_cm: parseFloat(e.target.value) || 0 })}
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold text-zinc-400">Abdômen (cm)</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={formData.abdomen_cm}
-                      onChange={(e) => setFormData({ ...formData, abdomen_cm: parseFloat(e.target.value) || 0 })}
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold text-zinc-400">Glúteos (cm)</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={formData.glutes_cm}
-                      onChange={(e) => setFormData({ ...formData, glutes_cm: parseFloat(e.target.value) || 0 })}
-                      className="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <button
                 type="submit"
                 className="w-full mt-2 py-3.5 rounded-2xl bg-[#ff1a00] text-white font-bold text-sm hover:bg-red-600 transition-colors shadow-lg shadow-red-950/40"
               >
-                Salvar Medidas
+                {editingMeasurementId ? 'Atualizar Medidas' : 'Salvar Medidas'}
               </button>
             </form>
           </div>

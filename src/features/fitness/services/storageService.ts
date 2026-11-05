@@ -122,11 +122,30 @@ export class FitnessStorageService {
 
   static addMeasurement(measurement: BodyMeasurement): BodyMeasurement[] {
     const list = this.getMeasurements();
-    const updated = [measurement, ...list].sort(
+    const existingIndex = list.findIndex((m) => m.id === measurement.id);
+    let updated: BodyMeasurement[];
+    if (existingIndex >= 0) {
+      updated = [...list];
+      updated[existingIndex] = measurement;
+    } else {
+      updated = [measurement, ...list];
+    }
+    updated.sort(
       (a, b) =>
         new Date(b.date || b.recorded_at).getTime() -
         new Date(a.date || a.recorded_at).getTime()
     );
+    this.saveMeasurements(updated);
+    return updated;
+  }
+
+  static updateMeasurement(measurement: BodyMeasurement): BodyMeasurement[] {
+    return this.addMeasurement(measurement);
+  }
+
+  static deleteMeasurement(id: string): BodyMeasurement[] {
+    const list = this.getMeasurements();
+    const updated = list.filter((m) => m.id !== id);
     this.saveMeasurements(updated);
     return updated;
   }
