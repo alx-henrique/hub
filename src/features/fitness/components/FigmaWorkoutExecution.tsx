@@ -3,7 +3,7 @@ import { WorkoutPlanDay, WorkoutSession, WorkoutSetLog, WorkoutPlanExercise } fr
 import { FitnessStorageService } from '../services/storageService';
 import { calculateDoubleProgression } from '../utils/progressionLogic';
 import { ExerciseVectorIllustration } from './ExerciseVectorIllustration';
-import { X, ArrowRight, SkipForward, Clock, Check, Plus, Minus, ListOrdered, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, ArrowRight, SkipForward, Clock, Check, Plus, Minus, ArrowUpDown, ChevronUp, ChevronDown, Pencil } from 'lucide-react';
 
 interface FigmaWorkoutExecutionProps {
   planDay: WorkoutPlanDay;
@@ -46,9 +46,13 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
   // Lista de exercícios da sessão (pode ser reordenada durante o treino sem mudar a ficha definitiva)
   const [sessionExercises, setSessionExercises] = useState<WorkoutPlanExercise[]>(planDay.exercises);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  // Set of exercise IDs that were skipped — they go to the end of the queue
+  const [skippedExerciseIds, setSkippedExerciseIds] = useState<Set<string>>(new Set());
   const [startTime] = useState(Date.now());
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+  // Which set is in "edit mode" (after being marked complete) — key: `${exerciseId}-${setIdx}`
+  const [editingSetKey, setEditingSetKey] = useState<string | null>(null);
 
   // Wake Lock API: impede que a tela do celular apague durante o treino
   useEffect(() => {
@@ -190,7 +194,8 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
         sessionExercises[nextIdx].rest_seconds || 60,
       );
     } else {
-      // All done – build session object and finish
+      // Check if there are still pending skipped exercises (not completed) at the end
+      // After all exercises processed, finish the workout
       const session: WorkoutSession = {
         id: `sess-${Date.now()}`,
         plan_day_id: planDay.id,
@@ -220,8 +225,42 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
   };
 
   const handleSkipExercise = () => {
-    // Simply advance without marking as completed
-    advanceIndex(groupExercises.length || 1);
+    // Move the skipped exercise(s) to the END of the session list so they come back later
+    const updatedExercises = [...sessionExercises];
+    const skippedGroup = groupExercises;
+    const skippedIds = new Set(skippedExerciseIds);
+    
+    // Remove skipped group from current position and push to end
+    const removedItems = updatedExercises.splice(currentExerciseIndex, skippedGroup.length);
+    
+    // Only add to end if not already skipped twice (avoid infinite loop)
+    removedItems.forEach((item) => {
+      if (!skippedIds.has(item.exercise_id)) {
+        updatedExercises.push(item);
+        skippedIds.add(item.exercise_id);
+      }
+      // If already skipped once, just drop it (don't loop forever)
+    });
+
+    setSkippedExerciseIds(skippedIds);
+    setSessionExercises(updatedExercises);
+
+    // Stay at the same index (now pointing to the next exercise)
+    // But if we're now past the end, finish
+    if (currentExerciseIndex >= updatedExercises.length) {
+      const session: WorkoutSession = {
+        id: `sess-${Date.now()}`,
+        plan_day_id: planDay.id,
+        plan_day_title: planDay.day_name,
+        started_at: new Date(startTime).toISOString(),
+        completed_at: new Date().toISOString(),
+        duration_minutes: Math.max(1, Math.round((Date.now() - startTime) / 60000)),
+        exercises_logs: exerciseLogs,
+      };
+      onFinishWorkout(session);
+    } else {
+      setRestSecondsRemaining(0);
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -359,7 +398,9 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                   <div
                     key={set.id}
                     className={`rounded-2xl border p-3 flex flex-col gap-2 transition-all ${
-                      set.completed
+                      editingSetKey === `${ex.exercise_id}-${idx}`
+                        ? 'bg-amber-950/20 border-amber-500/40'
+                        : set.completed
                         ? 'bg-emerald-950/20 border-emerald-500/30'
                         : 'bg-[#171719] border-white/5'
                     }`}
@@ -379,21 +420,49 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                             Feito
                           </span>
                         )}
+                        {editingSetKey === `${ex.exercise_id}-${idx}` && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 animate-pulse">
+                            Editando...
+                          </span>
+                        )}
                       </div>
 
                       {/* Botão Check série rápida */}
-                      <button
-                        type="button"
-                        onClick={() => updateSetField(ex.exercise_id, idx, 'completed', !set.completed)}
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                          set.completed
-                            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30'
-                            : 'bg-zinc-800 text-zinc-400 hover:text-white border border-white/5'
-                        }`}
-                        title={set.completed ? 'Marcar como não concluído' : 'Concluir série'}
-                      >
-                        <Check className="w-4 h-4 stroke-[3px]" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        {set.completed && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const key = `${ex.exercise_id}-${idx}`;
+                              setEditingSetKey(editingSetKey === key ? null : key);
+                            }}
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                              editingSetKey === `${ex.exercise_id}-${idx}`
+                                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
+                                : 'bg-zinc-800 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400 border border-white/5'
+                            }`}
+                            title="Corrigir peso ou reps desta série"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateSetField(ex.exercise_id, idx, 'completed', !set.completed);
+                            // Sair do modo edição ao desmarcar
+                            if (set.completed) setEditingSetKey(null);
+                          }}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                            set.completed
+                              ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30'
+                              : 'bg-zinc-800 text-zinc-400 hover:text-white border border-white/5'
+                          }`}
+                          title={set.completed ? 'Marcar como não concluído' : 'Concluir série'}
+                        >
+                          <Check className="w-4 h-4 stroke-[3px]" />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-2 pt-0.5">
