@@ -265,7 +265,7 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
 
   // ---------------------------------------------------------------------------
   return (
-    <div className="fixed inset-0 z-50 bg-[#0d0d0d] overflow-y-auto flex flex-col text-white pb-16">
+    <div className="fixed inset-0 z-50 bg-[#0d0d0d] overflow-y-auto flex flex-col text-white pb-16" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 4rem)' }}>
       <div className="max-w-md w-full mx-auto px-4 pt-3 flex flex-col gap-4">
         {/* Top bar */}
         <div className="flex items-center justify-between">

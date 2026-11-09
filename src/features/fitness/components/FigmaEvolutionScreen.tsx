@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { BodyMeasurement } from '../types';
+import React, { useState, useMemo } from 'react';
+import { BodyMeasurement, Exercise } from '../types';
 import { FitnessStorageService } from '../services/storageService';
+import { analyzeMuscleBalance } from '../utils/muscleBalanceLogic';
 import {
   Ruler,
   Calendar,
@@ -13,6 +14,10 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  Award,
+  AlertTriangle,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import {
   LineChart,
@@ -163,19 +168,113 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
       calf_left_cm: m.calf_left_cm || m.calves_cm || 0,
     }));
 
-  // Histórico de Cargas do Exercício Selecionado
-  const sessions = FitnessStorageService.getSessions();
-  const exerciseWeightsData = sessions
-    .filter((s) => s.exercises_logs[selectedExercise]?.length)
-    .sort((a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())
-    .map((s) => {
-      const logs = s.exercises_logs[selectedExercise];
-      const maxWeight = Math.max(...logs.map((l) => l.weight_kg || 0));
-      return {
-        date: new Date(s.started_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-        carga: maxWeight,
-      };
+  // Sessões e lista dinâmica de exercícios disponíveis
+  const sessions = useMemo(() => FitnessStorageService.getSessions(), []);
+  const allExercises = useMemo(() => FitnessStorageService.getAllExercises(), []);
+  const exerciseMap = useMemo(() => new Map<string, Exercise>(allExercises.map((e) => [e.id, e])), [allExercises]);
+
+  // Lista dinâmica de exercícios que o usuário já treinou
+  const trainedExerciseIds = useMemo(() => {
+    const ids = new Set<string>();
+    sessions.forEach((s) => {
+      Object.keys(s.exercises_logs || {}).forEach((id) => {
+        if (s.exercises_logs[id]?.some((set) => set.completed && set.weight_kg > 0)) {
+          ids.add(id);
+        }
+      });
     });
+    return Array.from(ids);
+  }, [sessions]);
+
+  // Opções para o select: primeiro os já treinados, depois os mais populares
+  const exerciseOptions = useMemo(() => {
+    const list: Array<{ id: string; name: string; hasHistory: boolean }> = [];
+    
+    // Treinados primeiro
+    trainedExerciseIds.forEach((id) => {
+      const ex = exerciseMap.get(id);
+      list.push({
+        id,
+        name: ex?.name || id,
+        hasHistory: true,
+      });
+    });
+
+    // Depois exercícios populares que ainda não foram treinados
+    const defaultIds = [
+      'ex-bench-press',
+      'ex-deadlift-conventional',
+      'ex-barbell-squat',
+      'ex-barbell-row',
+      'ex-overhead-press',
+      'ex-biceps-curl',
+    ];
+
+    defaultIds.forEach((id) => {
+      if (!trainedExerciseIds.includes(id)) {
+        const ex = exerciseMap.get(id);
+        list.push({
+          id,
+          name: ex?.name || id,
+          hasHistory: false,
+        });
+      }
+    });
+
+    return list;
+  }, [trainedExerciseIds, exerciseMap]);
+
+  // Ajusta selectedExercise para o primeiro treinado se o default não tiver dados
+  const activeExerciseId = useMemo(() => {
+    if (selectedExercise && trainedExerciseIds.includes(selectedExercise)) {
+      return selectedExercise;
+    }
+    return trainedExerciseIds[0] || selectedExercise || 'ex-bench-press';
+  }, [selectedExercise, trainedExerciseIds]);
+
+  // Histórico de Cargas do Exercício Selecionado
+  const exerciseWeightsData = useMemo(() => {
+    return sessions
+      .filter((s) => s.exercises_logs[activeExerciseId]?.length)
+      .sort((a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())
+      .map((s) => {
+        const logs = s.exercises_logs[activeExerciseId] || [];
+        const completedSets = logs.filter((l) => l.completed && l.weight_kg > 0);
+        const maxWeight = completedSets.length > 0 ? Math.max(...completedSets.map((l) => l.weight_kg || 0)) : 0;
+        const totalReps = completedSets.reduce((acc, l) => acc + (l.reps_performed || 0), 0);
+        return {
+          date: new Date(s.started_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+          fullDate: new Date(s.started_at).toLocaleDateString('pt-BR'),
+          carga: maxWeight,
+          reps: totalReps,
+          setsCount: completedSets.length,
+        };
+      })
+      .filter((item) => item.carga > 0);
+  }, [sessions, activeExerciseId]);
+
+  // Estatísticas de evolução de carga do exercício
+  const exerciseStats = useMemo(() => {
+    if (exerciseWeightsData.length === 0) return null;
+    const weights = exerciseWeightsData.map((d) => d.carga);
+    const pr = Math.max(...weights);
+    const initialWeight = weights[0];
+    const latestWeight = weights[weights.length - 1];
+    const diffKg = latestWeight - initialWeight;
+    const diffPct = initialWeight > 0 ? Math.round((diffKg / initialWeight) * 100) : 0;
+
+    return {
+      pr,
+      latestWeight,
+      initialWeight,
+      diffKg,
+      diffPct,
+      sessionsCount: exerciseWeightsData.length,
+    };
+  }, [exerciseWeightsData]);
+
+  // Análise de Desequilíbrio Muscular
+  const muscleBalance = useMemo(() => analyzeMuscleBalance(), [sessions]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -412,67 +511,207 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
         )}
       </div>
 
-      {/* 4. GRÁFICO COM EVOLUÇÃO DOS PESOS UTILIZADOS */}
-      <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3 shadow-lg">
-        <div className="flex items-center justify-between">
+      {/* 4. GRÁFICO COM EVOLUÇÃO DOS PESOS UTILIZADOS (DINÂMICO E COMPLETO) */}
+      <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3.5 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-black text-white tracking-tight">
-              Evolução dos pesos
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-black text-white tracking-tight">
+                Evolução de Cargas
+              </h3>
+              {exerciseStats && (
+                <span className="flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <Award className="w-3 h-3" />
+                  <span>PR: {exerciseStats.pr} kg</span>
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-zinc-400">
-              Carga máxima utilizada no exercício
+              Histórico de progressão contínua por exercício
             </p>
           </div>
 
-          {/* Seletor de exercício */}
+          {/* Seletor dinâmico de exercício */}
           <select
-            value={selectedExercise}
+            value={activeExerciseId}
             onChange={(e) => setSelectedExercise(e.target.value)}
-            className="bg-zinc-800 text-xs font-semibold text-white px-2.5 py-1.5 rounded-xl border border-white/10 focus:outline-none max-w-[140px] truncate"
+            className="bg-zinc-800 text-xs font-semibold text-white px-3 py-2 rounded-xl border border-white/10 focus:outline-none focus:ring-1 focus:ring-red-500 max-w-full sm:max-w-[200px] truncate"
           >
-            <option value="ex-bench-press">Supino Reto</option>
-            <option value="ex-deadlift-conventional">Lev. Terra</option>
-            <option value="ex-barbell-squat">Agachamento</option>
-            <option value="ex-barbell-row">Remada Curvada</option>
-            <option value="ex-overhead-press">Desenvolvimento</option>
-            <option value="ex-biceps-curl">Rosca Direta</option>
+            {exerciseOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.hasHistory ? '★ ' : ''}{opt.name}
+              </option>
+            ))}
           </select>
         </div>
 
+        {/* Resumo Rápido de Métricas do Exercício */}
+        {exerciseStats && (
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="p-2.5 rounded-2xl bg-zinc-900/80 border border-white/5">
+              <span className="text-[10px] text-zinc-400 font-medium block">Carga Inicial</span>
+              <span className="text-sm font-black text-zinc-300">
+                {exerciseStats.initialWeight} kg
+              </span>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-zinc-900/80 border border-white/5">
+              <span className="text-[10px] text-zinc-400 font-medium block">Carga Atual</span>
+              <span className="text-sm font-black text-white">
+                {exerciseStats.latestWeight} kg
+              </span>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-zinc-900/80 border border-white/5">
+              <span className="text-[10px] text-zinc-400 font-medium block">Progressão</span>
+              <span
+                className={`text-sm font-black ${
+                  exerciseStats.diffKg >= 0 ? 'text-emerald-400' : 'text-red-400'
+                }`}
+              >
+                {exerciseStats.diffKg > 0 ? `+${exerciseStats.diffKg}` : exerciseStats.diffKg} kg{' '}
+                <span className="text-[10px] font-bold">
+                  ({exerciseStats.diffPct > 0 ? `+${exerciseStats.diffPct}%` : `${exerciseStats.diffPct}%`})
+                </span>
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Gráfico Recharts de Carga */}
-        <div className="h-52 w-full pt-2">
+        <div className="h-56 w-full pt-1">
           {exerciseWeightsData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={exerciseWeightsData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                margin={{ top: 12, right: 12, left: -20, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="date" stroke="#71717a" fontSize={11} tickLine={false} />
-                <YAxis stroke="#71717a" fontSize={11} unit="kg" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} />
+                <YAxis stroke="#71717a" fontSize={10} unit="kg" tickLine={false} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#18181b',
-                    borderColor: '#27272a',
-                    borderRadius: '12px',
-                    fontSize: '12px',
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-3 shadow-xl text-xs">
+                          <p className="font-bold text-zinc-300">{data.fullDate}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="w-2 h-2 rounded-full bg-[#ff3322]" />
+                            <span className="text-white font-extrabold text-sm">
+                              {data.carga} kg
+                            </span>
+                            <span className="text-zinc-400 text-[11px]">
+                              ({data.setsCount} {data.setsCount === 1 ? 'série' : 'séries'})
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
                 />
                 <Line
                   type="monotone"
                   dataKey="carga"
-                  stroke="#ff1a00"
+                  stroke="#ff3322"
                   strokeWidth={3}
-                  dot={{ fill: '#ff1a00', r: 4 }}
-                  activeDot={{ r: 6 }}
+                  dot={{ fill: '#ff3322', r: 4, strokeWidth: 2, stroke: '#0d0d0d' }}
+                  activeDot={{ r: 6, fill: '#ff6655' }}
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-xs text-zinc-500">
-              Nenhum treino com carga registrado para este exercício.
+            <div className="h-full flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-zinc-900/30 border border-dashed border-white/5 gap-1.5">
+              <Dumbbell className="w-6 h-6 text-zinc-600" />
+              <p className="text-xs font-semibold text-zinc-400">
+                Nenhum treino com carga registrado para este exercício.
+              </p>
+              <p className="text-[10px] text-zinc-500 max-w-xs">
+                Realize um treino com este exercício para visualizar a curva de progressão dupla.
+              </p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* 5. EQUILÍBRIO MUSCULAR & SAÚDE POSTURAL (PREVENÇÃO DE LESÕES) */}
+      <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3.5 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white tracking-tight">
+                Equilíbrio & Prevenção
+              </h3>
+              <p className="text-[11px] text-zinc-400">
+                Simetria biomecânica e saúde articular
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-800/80 border border-white/5">
+            <span className="text-[10px] text-zinc-400 font-semibold">Harmonia:</span>
+            <span
+              className={`text-xs font-black ${
+                muscleBalance.overallScore >= 80
+                  ? 'text-emerald-400'
+                  : muscleBalance.overallScore >= 55
+                  ? 'text-amber-400'
+                  : 'text-red-400'
+              }`}
+            >
+              {muscleBalance.overallScore}%
+            </span>
+          </div>
+        </div>
+
+        {/* Lista de Alertas e Sugestões Biomecânicas */}
+        <div className="flex flex-col gap-2.5 pt-1">
+          {muscleBalance.alerts.map((alert) => (
+            <div
+              key={alert.id}
+              className={`p-3.5 rounded-2xl border flex flex-col gap-1.5 transition-all ${
+                alert.type === 'danger'
+                  ? 'bg-red-950/20 border-red-500/30'
+                  : alert.type === 'warning'
+                  ? 'bg-amber-950/20 border-amber-500/30'
+                  : 'bg-emerald-950/20 border-emerald-500/30'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {alert.type === 'danger' ? (
+                    <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  ) : alert.type === 'warning' ? (
+                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  )}
+                  <span className="text-xs font-black text-white">{alert.title}</span>
+                </div>
+                <span
+                  className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                    alert.type === 'danger'
+                      ? 'bg-red-500/20 text-red-400'
+                      : alert.type === 'warning'
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'bg-emerald-500/20 text-emerald-400'
+                  }`}
+                >
+                  {alert.type === 'danger' ? 'Alerta Crítico' : alert.type === 'warning' ? 'Atenção' : 'Equilibrado'}
+                </span>
+              </div>
+
+              <p className="text-[11px] font-semibold text-zinc-300">
+                {alert.ratioDescription}
+              </p>
+
+              <p className="text-[10px] text-zinc-400 leading-relaxed bg-black/30 p-2 rounded-xl border border-white/5">
+                💡 <strong className="text-zinc-200">Recomendação:</strong> {alert.recommendation}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -68,8 +68,40 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
   });
 
   const planDays = activePlan?.days || [];
-  const todayWorkout = planDays[0] || null;
-  const nextWorkouts = planDays.slice(1);
+
+  // Busca a última sessão concluída
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+  );
+  const lastCompletedSession = sortedSessions.find((s) => s.completed_at);
+
+  // Verifica se já houve treino no dia de hoje
+  const trainedToday = sessions.some((s) => {
+    const sDate = new Date(s.started_at).toDateString();
+    return sDate === now.toDateString();
+  });
+
+  // Determina inteligentemente o próximo treino da fila baseado no histórico real
+  const suggestedDayIndex = (() => {
+    if (!planDays.length) return 0;
+    if (!lastCompletedSession) return 0;
+
+    const lastDayIndex = planDays.findIndex(
+      (d) =>
+        d.id === lastCompletedSession.plan_day_id ||
+        d.day_name.toLowerCase().trim() === lastCompletedSession.plan_day_title?.toLowerCase().trim()
+    );
+
+    if (lastDayIndex >= 0) {
+      // Rotaciona para o próximo treino da ficha
+      return (lastDayIndex + 1) % planDays.length;
+    }
+    return 0;
+  })();
+
+  const suggestedWorkout = planDays[suggestedDayIndex] || null;
+  // Outros treinos da ficha mantendo rotação lógica
+  const otherWorkouts = planDays.filter((_, idx) => idx !== suggestedDayIndex);
 
   const dayOfMonth = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -268,41 +300,51 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
             ref={carouselRef}
             className="flex gap-3.5 overflow-x-auto pb-2 pt-0.5 -mx-4 px-4 snap-x snap-mandatory scroll-smooth touch-pan-x select-none no-scrollbar"
           >
-            {/* CARD 1: SEU TREINO DE HOJE (Design Premium Vermelho Escuro) */}
-            {todayWorkout && (
+            {/* CARD 1: TREINO SUGERIDO BASEADO NO HISTÓRICO REAL */}
+            {suggestedWorkout && (
               <div className="min-w-[270px] max-w-[290px] snap-start rounded-3xl bg-gradient-to-b from-[#1c1214] to-[#121215] border border-[#ff3322]/30 p-5 text-white shadow-xl flex flex-col justify-between h-[250px] flex-shrink-0 relative overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#ff3322]/20 text-[#ff3322] border border-[#ff3322]/30">
-                    Treino de Hoje
+                  <span
+                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                      trainedToday
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : 'bg-[#ff3322]/20 text-[#ff3322] border-[#ff3322]/30'
+                    }`}
+                  >
+                    {trainedToday ? '✓ Feito Hoje • Próximo:' : '⚡ Sugerido para Hoje'}
                   </span>
                   <span className="text-xs text-zinc-400 font-medium">
-                    {todayWorkout.exercises.length} exercícios
+                    {suggestedWorkout.exercises.length} exercícios
                   </span>
                 </div>
 
                 <div className="my-auto">
                   <h3 className="text-2xl font-black tracking-tight text-white line-clamp-1">
-                    {todayWorkout.day_name.includes('-')
-                      ? todayWorkout.day_name.split('-')[0].trim()
-                      : todayWorkout.day_name}
+                    {suggestedWorkout.day_name.includes('-')
+                      ? suggestedWorkout.day_name.split('-')[0].trim()
+                      : suggestedWorkout.day_name}
                   </h3>
                   <p className="text-xs text-zinc-400 mt-1 line-clamp-1">
-                    {todayWorkout.day_name.includes('-') ? todayWorkout.day_name.split('-')[1]?.trim() : 'Foco em hipertrofia'}
+                    {lastCompletedSession && !trainedToday
+                      ? `Próximo após ${lastCompletedSession.plan_day_title.split('-')[0].trim()}`
+                      : suggestedWorkout.day_name.includes('-')
+                      ? suggestedWorkout.day_name.split('-')[1]?.trim()
+                      : 'Foco em progressão contínua'}
                   </p>
                 </div>
 
                 <button
-                  onClick={() => onSelectDay(todayWorkout)}
+                  onClick={() => onSelectDay(suggestedWorkout)}
                   className="w-full py-3 px-4 rounded-xl bg-[#ff3322] hover:bg-red-600 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-between shadow-lg shadow-red-950/40 transition-all active:scale-[0.99] group cursor-pointer"
                 >
-                  <span>Iniciar Treino</span>
+                  <span>{trainedToday ? 'Adiantar Próximo' : 'Iniciar Treino'}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             )}
 
-            {/* DEMAIS DIAS */}
-            {nextWorkouts.map((day) => {
+            {/* DEMAIS DIAS DA FICHA */}
+            {otherWorkouts.map((day) => {
               const isRest = day.day_name.toLowerCase().includes('descanso');
 
               return (
@@ -312,7 +354,7 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                      Próximo
+                      Na Sequência
                     </span>
                     <span className="text-xs text-zinc-500 font-medium">
                       {isRest ? 'Recuperação' : `${day.exercises.length} ex`}
@@ -324,12 +366,16 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
                       {day.day_name.includes('-') ? day.day_name.split('-')[0].trim() : day.day_name}
                     </h3>
                     <p className="text-xs text-zinc-400 mt-1 line-clamp-1">
-                      {isRest ? 'Descanso ativo & sono' : (day.day_name.includes('-') ? day.day_name.split('-')[1]?.trim() : 'Sequência da ficha')}
+                      {isRest
+                        ? 'Descanso ativo & sono'
+                        : day.day_name.includes('-')
+                        ? day.day_name.split('-')[1]?.trim()
+                        : 'Sequência da ficha'}
                     </p>
                   </div>
 
                   <button
-                    onClick={() => isRest ? onOpenActivity() : onSelectDay(day)}
+                    onClick={() => (isRest ? onOpenActivity() : onSelectDay(day))}
                     className="w-full py-3 px-4 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 font-bold text-xs uppercase tracking-wider flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer"
                   >
                     <span>{isRest ? 'Ver atividade' : 'Ver treino'}</span>

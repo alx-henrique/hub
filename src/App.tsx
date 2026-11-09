@@ -17,6 +17,7 @@ import { FigmaEvolutionScreen } from './features/fitness/components/FigmaEvoluti
 import { AICoachPanel } from './features/fitness/components/AICoachPanel';
 import { FigmaLoginScreen } from './features/fitness/components/FigmaLoginScreen';
 import { calculateVolumeLoad } from './features/fitness/utils/progressionLogic';
+import { CloudSyncService } from './features/fitness/services/cloudSyncService';
 import { Trophy } from 'lucide-react';
 
 export default function App() {
@@ -68,19 +69,30 @@ export default function App() {
     return diffDays <= 30;
   }).length;
 
-  // Finalização do Treino
+  // Finalização do Treino com Auto-Sync em Nuvem (Google Drive)
   const handleFinishWorkout = (newSession: WorkoutSession) => {
     const updated = FitnessStorageService.addSession(newSession);
     setSessions(updated);
     setActiveExecutingDay(null);
     setPreviewWorkoutDay(null);
     setCompletedCelebrationSession(newSession);
+
+    // Auto-backup no Google Drive silencioso se a conta estiver conectada
+    const cloudConfig = CloudSyncService.getConfig();
+    if (cloudConfig.google_access_token && cloudConfig.auto_sync_enabled) {
+      CloudSyncService.uploadToGoogleDrive().catch(() => {});
+    }
   };
 
-  // Adicionar ou Atualizar Medidas
+  // Adicionar ou Atualizar Medidas com Auto-Sync
   const handleAddMeasurement = (newMeas: BodyMeasurement) => {
     const updated = FitnessStorageService.addMeasurement(newMeas);
     setMeasurements(updated);
+
+    const cloudConfig = CloudSyncService.getConfig();
+    if (cloudConfig.google_access_token && cloudConfig.auto_sync_enabled) {
+      CloudSyncService.uploadToGoogleDrive().catch(() => {});
+    }
   };
 
   const handleDeleteMeasurement = (id: string) => {
@@ -88,7 +100,7 @@ export default function App() {
     setMeasurements(updated);
   };
 
-  // Salvar plano (novo ou editado)
+  // Salvar plano (novo ou editado) com Auto-Sync
   const handleSaveNewPlan = (newPlan: WorkoutPlan) => {
     const existingIndex = plans.findIndex((p) => p.id === newPlan.id);
     let updated: WorkoutPlan[];
@@ -100,6 +112,11 @@ export default function App() {
     }
     setPlans(updated);
     FitnessStorageService.savePlans(updated);
+
+    const cloudConfig = CloudSyncService.getConfig();
+    if (cloudConfig.google_access_token && cloudConfig.auto_sync_enabled) {
+      CloudSyncService.uploadToGoogleDrive().catch(() => {});
+    }
   };
 
   // Resetar tudo para experiência de novo usuário
