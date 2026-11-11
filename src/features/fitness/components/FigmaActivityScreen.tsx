@@ -227,8 +227,10 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
         </div>
       </div>
 
-      {/* 3. CALENDÁRIO MENSAL */}
-      <div className="flex flex-col gap-3 rounded-3xl bg-[#111114] border border-white/5 p-5 shadow-lg">
+      {/* GRID RESPONSIVO: Calendário e Histórico Anual lado a lado no Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* 3. CALENDÁRIO MENSAL */}
+        <div className="lg:col-span-7 flex flex-col gap-3 rounded-3xl bg-[#111114] border border-white/5 p-5 shadow-lg">
         <div className="flex items-center justify-between">
           <button
             onClick={() => {
@@ -341,38 +343,39 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
             </div>
           </div>
         )}
-      </div>
-
-      {/* 4. HISTÓRICO ANUAL */}
-      <div className="flex flex-col gap-3 rounded-3xl bg-[#111114] border border-white/5 p-5 shadow-lg">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-zinc-200">
-            Nesse Ano ({currentYear})
-          </h3>
-          <span className="text-[11px] text-zinc-400">
-            {sessions.filter((s) => new Date(s.started_at).getFullYear() === currentYear).length} treinos no total
-          </span>
         </div>
 
-        <div className="flex flex-col gap-2 pt-1">
-          {annualData.map((item) => (
-            <div key={item.month} className="flex items-center gap-3">
-              <span className="text-xs font-medium text-zinc-400 w-7 capitalize">
-                {item.month}
-              </span>
+        {/* 4. HISTÓRICO ANUAL */}
+        <div className="lg:col-span-5 flex flex-col gap-3 rounded-3xl bg-[#111114] border border-white/5 p-5 shadow-lg">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-zinc-200">
+              Nesse Ano ({currentYear})
+            </h3>
+            <span className="text-[11px] text-zinc-400">
+              {sessions.filter((s) => new Date(s.started_at).getFullYear() === currentYear).length} treinos no total
+            </span>
+          </div>
 
-              <div className="flex-1 h-3 rounded-full bg-zinc-800/50 overflow-hidden flex">
-                <div
-                  className="h-full bg-gradient-to-r from-[#ff3322] to-red-500 rounded-full transition-all duration-500"
-                  style={{ width: `${item.pct}%` }}
-                />
+          <div className="flex flex-col gap-2 pt-1">
+            {annualData.map((item) => (
+              <div key={item.month} className="flex items-center gap-3">
+                <span className="text-xs font-medium text-zinc-400 w-7 capitalize">
+                  {item.month}
+                </span>
+
+                <div className="flex-1 h-3 rounded-full bg-zinc-800/50 overflow-hidden flex">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#ff3322] to-red-500 rounded-full transition-all duration-500"
+                    style={{ width: `${item.pct}%` }}
+                  />
+                </div>
+
+                <span className="text-[10px] font-bold text-zinc-500 w-5 text-right font-mono">
+                  {item.count}
+                </span>
               </div>
-
-              <span className="text-[10px] font-bold text-zinc-500 w-5 text-right font-mono">
-                {item.count}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

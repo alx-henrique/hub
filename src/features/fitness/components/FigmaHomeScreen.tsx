@@ -164,91 +164,105 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* 2. CALENDÁRIO SEMANAL ELEGANTE (Menos gritante, moderno) */}
-      <div className="p-3 rounded-2xl bg-[#111114] border border-white/5 flex flex-col gap-2 shadow-lg">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-semibold text-zinc-300">Semana Atual</span>
-          <span className="text-[11px] text-zinc-500 font-medium">
-            {daysOfWeek.filter((d) => d.hasTrained).length} de 7 dias
-          </span>
-        </div>
+      {/* 2 & 3. CALENDÁRIO SEMANAL & PROGRESSO DO MÊS (Responsivo: 2 colunas em Desktop) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        {/* Calendário Semanal */}
+        <div className="md:col-span-2 p-3.5 rounded-2xl bg-[#111114] border border-white/5 flex flex-col justify-between gap-2.5 shadow-lg">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-semibold text-zinc-300">Semana Atual</span>
+            <span className="text-[11px] text-zinc-500 font-medium">
+              {daysOfWeek.filter((d) => d.hasTrained).length} de 7 dias
+            </span>
+          </div>
 
-        <div className="grid grid-cols-7 gap-1.5">
-          {daysOfWeek.map((d, index) => {
-            // Hoje pendente
-            if (d.status === 'today') {
+          <div className="grid grid-cols-7 gap-1.5">
+            {daysOfWeek.map((d, index) => {
+              // Hoje pendente
+              if (d.status === 'today') {
+                return (
+                  <div
+                    key={index}
+                    className="rounded-xl flex flex-col items-center py-2 px-1 bg-gradient-to-b from-[#ff3322] to-[#d61e0f] text-white shadow-md shadow-red-950/40 scale-[1.03] transition-transform"
+                  >
+                    <span className="text-[10px] font-bold uppercase leading-none opacity-90">{d.label}</span>
+                    <span className="text-sm font-black mt-1 leading-none">{d.day}</span>
+                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                  </div>
+                );
+              }
+
+              // Dia concluído (Verde discreto e elegante)
+              if (d.status === 'done') {
+                return (
+                  <div
+                    key={index}
+                    className="rounded-xl flex flex-col items-center py-2 px-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300"
+                  >
+                    <span className="text-[10px] font-semibold uppercase leading-none opacity-80">{d.label}</span>
+                    <span className="text-sm font-black mt-1 leading-none">{d.day}</span>
+                    <Check className="w-3.5 h-3.5 mt-1 stroke-[3px] text-emerald-400" />
+                  </div>
+                );
+              }
+
+              // Passado sem treino
+              if (d.status === 'missed') {
+                return (
+                  <div
+                    key={index}
+                    className="rounded-xl flex flex-col items-center py-2 px-1 bg-zinc-900/60 border border-white/5 text-zinc-500"
+                  >
+                    <span className="text-[10px] font-medium uppercase leading-none">{d.label}</span>
+                    <span className="text-sm font-bold mt-1 leading-none text-zinc-400">{d.day}</span>
+                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-zinc-700" />
+                  </div>
+                );
+              }
+
+              // Dias futuros
               return (
                 <div
                   key={index}
-                  className="rounded-xl flex flex-col items-center py-2 px-1 bg-gradient-to-b from-[#ff3322] to-[#d61e0f] text-white shadow-md shadow-red-950/40 scale-[1.03] transition-transform"
-                >
-                  <span className="text-[10px] font-bold uppercase leading-none opacity-90">{d.label}</span>
-                  <span className="text-sm font-black mt-1 leading-none">{d.day}</span>
-                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
-                </div>
-              );
-            }
-
-            // Dia concluído (Verde discreto e elegante)
-            if (d.status === 'done') {
-              return (
-                <div
-                  key={index}
-                  className="rounded-xl flex flex-col items-center py-2 px-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300"
-                >
-                  <span className="text-[10px] font-semibold uppercase leading-none opacity-80">{d.label}</span>
-                  <span className="text-sm font-black mt-1 leading-none">{d.day}</span>
-                  <Check className="w-3.5 h-3.5 mt-1 stroke-[3px] text-emerald-400" />
-                </div>
-              );
-            }
-
-            // Passado sem treino
-            if (d.status === 'missed') {
-              return (
-                <div
-                  key={index}
-                  className="rounded-xl flex flex-col items-center py-2 px-1 bg-zinc-900/60 border border-white/5 text-zinc-500"
+                  className="rounded-xl flex flex-col items-center py-2 px-1 bg-zinc-900/30 border border-transparent text-zinc-600"
                 >
                   <span className="text-[10px] font-medium uppercase leading-none">{d.label}</span>
-                  <span className="text-sm font-bold mt-1 leading-none text-zinc-400">{d.day}</span>
-                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-zinc-700" />
+                  <span className="text-sm font-semibold mt-1 leading-none text-zinc-500">{d.day}</span>
+                  <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-transparent" />
                 </div>
               );
-            }
-
-            // Dias futuros
-            return (
-              <div
-                key={index}
-                className="rounded-xl flex flex-col items-center py-2 px-1 bg-zinc-900/30 border border-transparent text-zinc-600"
-              >
-                <span className="text-[10px] font-medium uppercase leading-none">{d.label}</span>
-                <span className="text-sm font-semibold mt-1 leading-none text-zinc-500">{d.day}</span>
-                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-transparent" />
-              </div>
-            );
-          })}
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* 3. BARRA DE ATIVIDADE DO MÊS */}
-      <div className="p-3.5 rounded-2xl bg-[#111114] border border-white/5 flex flex-col gap-2 shadow-sm">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-zinc-300">Progresso do Mês</span>
-          <span className="text-[11px] font-mono font-bold text-zinc-400">
-            {trainedDaysInMonth} {trainedDaysInMonth === 1 ? 'treino' : 'treinos'} ({monthProgressPct}% do mês)
-          </span>
-        </div>
-        <div className="w-full h-2 rounded-full bg-zinc-800/80 overflow-hidden flex">
-          {trainedDaysInMonth > 0 ? (
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, (trainedDaysInMonth / 16) * 100)}%` }}
-            />
-          ) : (
-            <div className="h-full w-full bg-zinc-800/40" />
-          )}
+        {/* Barra de Atividade do Mês */}
+        <div className="md:col-span-1 p-3.5 rounded-2xl bg-[#111114] border border-white/5 flex flex-col justify-between gap-3 shadow-sm">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-zinc-300">Progresso do Mês</span>
+            <span className="text-[11px] font-mono font-bold text-zinc-400">
+              {trainedDaysInMonth} {trainedDaysInMonth === 1 ? 'treino' : 'treinos'}
+            </span>
+          </div>
+
+          <div className="my-auto py-1">
+            <div className="flex items-baseline justify-between mb-1.5">
+              <span className="text-2xl font-black text-white">{trainedDaysInMonth}</span>
+              <span className="text-xs font-semibold text-emerald-400">{monthProgressPct}% do mês</span>
+            </div>
+            <div className="w-full h-2.5 rounded-full bg-zinc-800/80 overflow-hidden flex">
+              {trainedDaysInMonth > 0 ? (
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (trainedDaysInMonth / 16) * 100)}%` }}
+                />
+              ) : (
+                <div className="h-full w-full bg-zinc-800/40" />
+              )}
+            </div>
+          </div>
+
+          <p className="text-[10px] text-zinc-500">
+            Meta sugerida: 16 treinos mensais
+          </p>
         </div>
       </div>
 
@@ -294,15 +308,15 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
           </div>
         )}
 
-        {/* Se TEM PLANO CADASTRADO: Carrossel Modernizado */}
+        {/* Se TEM PLANO CADASTRADO: Carrossel no Mobile, Grid Elegante no Desktop */}
         {activePlan && (
           <div
             ref={carouselRef}
-            className="flex gap-3.5 overflow-x-auto pb-2 pt-0.5 -mx-4 px-4 snap-x snap-mandatory scroll-smooth touch-pan-x select-none no-scrollbar"
+            className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-3.5 overflow-x-auto md:overflow-visible pb-2 pt-0.5 -mx-4 md:mx-0 px-4 md:px-0 snap-x snap-mandatory scroll-smooth touch-pan-x select-none no-scrollbar"
           >
             {/* CARD 1: TREINO SUGERIDO BASEADO NO HISTÓRICO REAL */}
             {suggestedWorkout && (
-              <div className="min-w-[270px] max-w-[290px] snap-start rounded-3xl bg-gradient-to-b from-[#1c1214] to-[#121215] border border-[#ff3322]/30 p-5 text-white shadow-xl flex flex-col justify-between h-[250px] flex-shrink-0 relative overflow-hidden">
+              <div className="min-w-[270px] max-w-[290px] md:min-w-0 md:max-w-none w-full snap-start rounded-3xl bg-gradient-to-b from-[#1c1214] to-[#121215] border border-[#ff3322]/30 p-5 text-white shadow-xl flex flex-col justify-between h-[250px] flex-shrink-0 relative overflow-hidden group hover:border-[#ff3322]/60 transition-all">
                 <div className="flex items-center justify-between">
                   <span
                     className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
@@ -350,7 +364,7 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
               return (
                 <div
                   key={day.id}
-                  className="min-w-[250px] max-w-[270px] snap-start rounded-3xl bg-[#111114] border border-white/5 p-5 text-white shadow-lg flex flex-col justify-between h-[250px] flex-shrink-0"
+                  className="min-w-[250px] max-w-[270px] md:min-w-0 md:max-w-none w-full snap-start rounded-3xl bg-[#111114] border border-white/5 hover:border-white/15 p-5 text-white shadow-lg flex flex-col justify-between h-[250px] flex-shrink-0 transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">

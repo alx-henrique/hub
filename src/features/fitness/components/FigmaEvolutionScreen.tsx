@@ -341,7 +341,11 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
         </p>
       </div>
 
-      {/* 1. BOTÃO PARA REGISTRAR MEDIDAS */}
+      {/* GRID RESPONSIVO: 1 coluna no Mobile, 2 colunas no Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* COLUNA ESQUERDA: Medidas Corporais & Histórico */}
+        <div className="flex flex-col gap-5">
+          {/* 1. BOTÃO PARA REGISTRAR MEDIDAS */}
       <button
         onClick={handleOpenNew}
         className="w-full text-left rounded-3xl bg-gradient-to-r from-[#181510] to-[#121215] border border-amber-500/30 p-5 shadow-lg hover:border-amber-500/50 transition-all flex items-center justify-between group active:scale-[0.99] cursor-pointer"
@@ -511,7 +515,11 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
         )}
       </div>
 
-      {/* 4. GRÁFICO COM EVOLUÇÃO DOS PESOS UTILIZADOS (DINÂMICO E COMPLETO) */}
+        </div>
+
+        {/* COLUNA DIREITA: Cargas e Equilíbrio Muscular */}
+        <div className="flex flex-col gap-5">
+          {/* 4. GRÁFICO COM EVOLUÇÃO DOS PESOS UTILIZADOS (DINÂMICO E COMPLETO) */}
       <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3.5 shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
@@ -712,6 +720,9 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
               </p>
             </div>
           ))}
+        </div>
+      </div>
+
         </div>
       </div>
 

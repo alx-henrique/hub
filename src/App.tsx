@@ -8,6 +8,8 @@ import {
 } from './features/fitness/types';
 import { FitnessStorageService } from './features/fitness/services/storageService';
 import { BottomNav, NavTab } from './features/fitness/components/BottomNav';
+import { DesktopSidebar } from './features/fitness/components/DesktopSidebar';
+import { CloudSyncModal } from './features/fitness/components/CloudSyncModal';
 import { FigmaHomeScreen } from './features/fitness/components/FigmaHomeScreen';
 import { FigmaWorkoutPlanList } from './features/fitness/components/FigmaWorkoutPlanList';
 import { FigmaStartWorkoutPreview } from './features/fitness/components/FigmaStartWorkoutPreview';
@@ -46,9 +48,27 @@ export default function App() {
 
   // Modal de Celebração de Treino Concluído
   const [completedCelebrationSession, setCompletedCelebrationSession] = useState<WorkoutSession | null>(null);
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
 
   // Plano ativo
   const activePlan = plans.find((p) => p.is_active) || plans[0] || null;
+
+  // Treino sugerido para atalhos rápidos
+  const suggestedWorkout = (() => {
+    const days = activePlan?.days || [];
+    if (!days.length) return null;
+    const sorted = [...sessions].sort(
+      (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+    );
+    const lastSession = sorted.find((s) => s.completed_at);
+    if (!lastSession) return days[0];
+    const lastIdx = days.findIndex(
+      (d) =>
+        d.id === lastSession.plan_day_id ||
+        d.day_name.toLowerCase().trim() === lastSession.plan_day_title?.toLowerCase().trim()
+    );
+    return lastIdx >= 0 ? days[(lastIdx + 1) % days.length] : days[0];
+  })();
 
   // Login handler
   const handleLoginSuccess = (name: string) => {
@@ -133,9 +153,27 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white">
-      {/* Container Centralizado Mobile-First idêntico ao Figma */}
-      <div className="max-w-md mx-auto min-h-screen px-4 pt-3 relative">
+    <div className="min-h-screen bg-[#0d0d0d] text-white flex">
+      {/* SIDEBAR LATERAL FIXA PARA NAVEGADORES DESKTOP */}
+      {!activeExecutingDay && (
+        <DesktopSidebar
+          activeTab={activeTab}
+          onChangeTab={(tab) => {
+            setPreviewWorkoutDay(null);
+            setActiveTab(tab);
+          }}
+          userName={userName}
+          weeklyWorkoutsCount={weeklyWorkoutsCount}
+          suggestedWorkout={suggestedWorkout}
+          onStartSuggestedWorkout={(day) => setPreviewWorkoutDay(day)}
+          onOpenCloudModal={() => setIsCloudModalOpen(true)}
+          onResetData={handleResetAllData}
+        />
+      )}
+
+      {/* ÁREA DE CONTEÚDO PRINCIPAL (Responsivo: Mobile-First + Expansão Fluida no Desktop) */}
+      <div className={`flex-1 min-h-screen flex flex-col transition-all duration-200 ${!activeExecutingDay ? 'md:pl-64 lg:md:pl-72' : ''}`}>
+        <main className="w-full max-w-md md:max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 md:px-8 pt-3 md:pt-6 pb-20 md:pb-12 relative flex-1">
         {/* VIEW 1: HOME (Idêntica ao Figma "HOME.png") */}
         {activeTab === 'home' && !previewWorkoutDay && (
           <FigmaHomeScreen
@@ -258,9 +296,16 @@ export default function App() {
             </div>
           </div>
         )}
+        </main>
       </div>
 
-      {/* BARRA DE NAVEGAÇÃO INFERIOR MODERNA (BOTTOM NAV) */}
+      {/* MODAL DE SINCRONIZAÇÃO EM NUVEM / GOOGLE DRIVE */}
+      <CloudSyncModal
+        isOpen={isCloudModalOpen}
+        onClose={() => setIsCloudModalOpen(false)}
+      />
+
+      {/* BARRA DE NAVEGAÇÃO INFERIOR MODERNA (BOTTOM NAV - SOMENTE MOBILE) */}
       {!activeExecutingDay && (
         <BottomNav
           activeTab={activeTab}

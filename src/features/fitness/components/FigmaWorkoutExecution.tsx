@@ -266,14 +266,14 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
   // ---------------------------------------------------------------------------
   return (
     <div className="fixed inset-0 z-50 bg-[#0d0d0d] overflow-y-auto flex flex-col text-white pb-16" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 4rem)' }}>
-      <div className="max-w-md w-full mx-auto px-4 pt-3 flex flex-col gap-4">
+      <div className="max-w-md md:max-w-4xl lg:max-w-5xl w-full mx-auto px-4 md:px-8 pt-3 md:pt-6 flex flex-col gap-4">
         {/* Top bar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-zinc-400">
               Exercício {currentExerciseIndex + 1} de {sessionExercises.length}
             </span>
-            <div className="w-20 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+            <div className="w-20 md:w-32 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
               <div
                 className="h-full bg-[#ff1a00] transition-all"
                 style={{
@@ -303,7 +303,11 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
           </div>
         </div>
 
-        {/* Exercise illustration */}
+        {/* CORPO RESPONSIVO: 1 coluna no mobile, 2 colunas lado a lado no desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+          {/* COLUNA ESQUERDA: Ilustração, Nomes, Métricas e Progressão */}
+          <div className="md:col-span-5 flex flex-col gap-4 md:sticky md:top-6">
+            {/* Exercise illustration */}
         <div className="w-full h-56 rounded-[28px] overflow-hidden bg-white/5 border border-white/10 relative flex items-center justify-center">
           <ExerciseVectorIllustration
             exerciseId={primaryPlanEx.exercise_id}
@@ -376,8 +380,22 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
           </div>
         </div>
 
-        {/* Sets inputs – stacked per exercise when grouped */}
-        <div className="flex flex-col gap-3">
+            {/* Progression suggestion banner */}
+            <div className="text-center my-1 p-3.5 rounded-2xl bg-zinc-900/40 border border-white/5">
+              <p className="text-xs font-semibold text-zinc-300">Sugestão para progressão contínua:</p>
+              <p className="text-3xl font-black text-white tracking-tight mt-0.5">
+                {progression.suggestedWeight} kg
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-0.5 font-medium">
+                {progression.rationale}
+              </p>
+            </div>
+          </div>
+
+          {/* COLUNA DIREITA: Séries, RPE e Ações */}
+          <div className="md:col-span-7 flex flex-col gap-4">
+            {/* Sets inputs – stacked per exercise when grouped */}
+            <div className="flex flex-col gap-3">
           {groupExercises.map((ex) => {
             const sets = exerciseLogs[ex.exercise_id] || [];
             return (
@@ -568,17 +586,6 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
           })}
         </div>
 
-        {/* Progression suggestion banner */}
-        <div className="text-center my-1">
-          <p className="text-xs font-semibold text-zinc-300">Sugestão para progressão contínua:</p>
-          <p className="text-4xl font-black text-white tracking-tight mt-0.5">
-            {progression.suggestedWeight} kg
-          </p>
-          <p className="text-[11px] text-zinc-400 mt-0.5 font-medium">
-            {progression.rationale}
-          </p>
-        </div>
-
         {/* Action buttons */}
         <div className="flex flex-col gap-2 pt-1 pb-6">
           <button
@@ -598,8 +605,10 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
           </button>
         </div>
       </div>
+    </div>
+  </div>
 
-      {/* MODAL DE REORDENAÇÃO DE EXERCÍCIOS DURANTE O TREINO */}
+  {/* MODAL DE REORDENAÇÃO DE EXERCÍCIOS DURANTE O TREINO */}
       {isReorderModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="w-full max-w-md bg-[#18181b] rounded-t-3xl sm:rounded-3xl border border-white/10 p-5 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">

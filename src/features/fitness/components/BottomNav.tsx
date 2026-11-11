@@ -25,7 +25,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto">
+    <div className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto md:hidden">
       {/* Mini banner se houver treino em andamento */}
       {hasActiveWorkout && onOpenActiveWorkout && (
         <div className="px-4 pb-2">

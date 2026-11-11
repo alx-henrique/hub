@@ -92,10 +92,11 @@ export const FigmaStartWorkoutPreview: React.FC<FigmaStartWorkoutPreviewProps> =
         </button>
       </div>
 
-      {/* Lista dos Exercícios Previstos */}
+      {/* Lista dos Exercícios Previstos (Grid no Desktop) */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-bold text-zinc-400 px-1">Ordem dos Exercícios</span>
-        {planDay.exercises.map((item, index) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          {planDay.exercises.map((item, index) => {
           const perf = getLastPerformance(item.exercise_id);
           const setsCount = item.target_sets || 3;
           const targetReps = item.max_reps || 10;
@@ -156,6 +157,7 @@ export const FigmaStartWorkoutPreview: React.FC<FigmaStartWorkoutPreviewProps> =
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
