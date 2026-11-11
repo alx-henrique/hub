@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { BodyMeasurement, Exercise } from '../types';
 import { FitnessStorageService } from '../services/storageService';
 import { analyzeMuscleBalance } from '../utils/muscleBalanceLogic';
+import { estimateBodyFat, calculateEvolutionAnalysis } from '../utils/bodyCompositionLogic';
 import {
   Ruler,
   Calendar,
@@ -18,6 +19,14 @@ import {
   AlertTriangle,
   ShieldCheck,
   Zap,
+  Percent,
+  Activity,
+  Flame,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  CheckCircle2,
+  HelpCircle,
 } from 'lucide-react';
 import {
   LineChart,
@@ -46,6 +55,7 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
 
   const [selectedMetric, setSelectedMetric] = useState<
     | 'weight_kg'
+    | 'body_fat_pct'
     | 'shoulders_cm'
     | 'chest_cm'
     | 'biceps_right_cm'
@@ -62,11 +72,13 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
   >('weight_kg');
 
   const [selectedExercise, setSelectedExercise] = useState<string>('ex-bench-press');
+  const [gender, setGender] = useState<'male' | 'female'>('male');
 
   // Estado do formulário de inclusão/edição
   const initialFormState = {
     date: new Date().toISOString().split('T')[0],
     weight_kg: 80,
+    height_cm: 175,
     shoulders_cm: 115,
     chest_cm: 102,
     biceps_right_cm: 37,
@@ -92,6 +104,7 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
       setFormData({
         date: new Date().toISOString().split('T')[0],
         weight_kg: latest.weight_kg || 80,
+        height_cm: latest.height_cm || 175,
         shoulders_cm: latest.shoulders_cm || 115,
         chest_cm: latest.chest_cm || 102,
         biceps_right_cm: latest.biceps_right_cm || latest.biceps_cm || 37,
@@ -119,6 +132,7 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
     setFormData({
       date: dateFormatted,
       weight_kg: m.weight_kg || 0,
+      height_cm: m.height_cm || 175,
       shoulders_cm: m.shoulders_cm || 0,
       chest_cm: m.chest_cm || 0,
       biceps_right_cm: m.biceps_right_cm || m.biceps_cm || 0,
@@ -153,6 +167,7 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
     .map((m) => ({
       date: new Date(m.date || m.recorded_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
       weight_kg: m.weight_kg,
+      body_fat_pct: m.body_fat_pct || estimateBodyFat(m, gender).bodyFatPct,
       shoulders_cm: m.shoulders_cm || 0,
       biceps_right_cm: m.biceps_right_cm || m.biceps_cm || 0,
       biceps_left_cm: m.biceps_left_cm || m.biceps_cm || 0,
@@ -287,6 +302,7 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
       recorded_at: recordedTimestamp,
       date: formData.date || new Date().toISOString().split('T')[0],
       weight_kg: Number(formData.weight_kg),
+      height_cm: Number(formData.height_cm) || 175,
       shoulders_cm: Number(formData.shoulders_cm),
       biceps_right_cm: Number(formData.biceps_right_cm),
       biceps_left_cm: Number(formData.biceps_left_cm),
@@ -307,13 +323,31 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
       notes: editingMeasurementId ? 'Editado via app' : 'Registro via app',
     };
 
+    // Estima e anexa o percentual de gordura calculado
+    const fatCalc = estimateBodyFat(measurementToSave, gender);
+    measurementToSave.body_fat_pct = fatCalc.bodyFatPct;
+
     onAddMeasurement(measurementToSave);
     setIsModalOpen(false);
     setEditingMeasurementId(null);
   };
 
+  // Medição mais recente e cálculos analíticos
+  const latestMeasurement = measurements[0] || null;
+
+  // Estimativa de % de gordura corporal atual
+  const currentBodyFatEstimate = useMemo(() => {
+    return latestMeasurement ? estimateBodyFat(latestMeasurement, gender) : null;
+  }, [latestMeasurement, gender]);
+
+  // Diagnóstico de Evolução por Médias Móveis (Evoluindo / Regredindo / Estagnado)
+  const evolutionDiagnosis = useMemo(() => {
+    return calculateEvolutionAnalysis(measurements, sessions, gender);
+  }, [measurements, sessions, gender]);
+
   const metricLabels: Record<string, string> = {
     weight_kg: 'Peso Corporal (kg)',
+    body_fat_pct: '% Gordura Corporal (%BF)',
     shoulders_cm: 'Ombros (cm)',
     chest_cm: 'Peitoral (cm)',
     biceps_right_cm: 'Bíceps Direito (cm)',
@@ -337,14 +371,260 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
           Minha Evolução
         </h1>
         <p className="text-xs text-zinc-400 mt-0.5">
-          Acompanhamento antropométrico e progressão contínua de cargas
+          Acompanhamento antropométrico, estimativa de gordura e cálculo de progresso
         </p>
+      </div>
+
+      {/* PAINEL DE DIAGNÓSTICO POR MÉDIA: EVOLUINDO / REGREDINDO / ESTAGNADO */}
+      <div
+        className={`rounded-3xl border p-5 sm:p-6 shadow-xl flex flex-col gap-4 transition-all ${
+          evolutionDiagnosis.status === 'EVOLVING'
+            ? 'bg-gradient-to-br from-[#0e1a14] via-[#101412] to-[#111114] border-emerald-500/40 shadow-emerald-950/20'
+            : evolutionDiagnosis.status === 'REGRESSING'
+            ? 'bg-gradient-to-br from-[#1a1012] via-[#141012] to-[#111114] border-red-500/40 shadow-red-950/20'
+            : 'bg-gradient-to-br from-[#1a1710] via-[#141310] to-[#111114] border-amber-500/40 shadow-amber-950/20'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0"
+              style={{
+                backgroundColor: `${evolutionDiagnosis.statusColor}25`,
+                border: `1px solid ${evolutionDiagnosis.statusColor}50`,
+              }}
+            >
+              {evolutionDiagnosis.status === 'EVOLVING' ? (
+                <TrendingUp className="w-6 h-6 text-emerald-400 stroke-[2.5]" />
+              ) : evolutionDiagnosis.status === 'REGRESSING' ? (
+                <AlertTriangle className="w-6 h-6 text-red-400 stroke-[2.5]" />
+              ) : (
+                <Minus className="w-6 h-6 text-amber-400 stroke-[3]" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border tracking-wider"
+                  style={{
+                    backgroundColor: `${evolutionDiagnosis.statusColor}20`,
+                    color: evolutionDiagnosis.statusColor,
+                    borderColor: `${evolutionDiagnosis.statusColor}40`,
+                  }}
+                >
+                  {evolutionDiagnosis.statusLabel}
+                </span>
+                <span className="text-xs text-zinc-400 font-semibold">
+                  Score: <strong className="text-white">{evolutionDiagnosis.score}%</strong>
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5">
+                {evolutionDiagnosis.title}
+              </h2>
+            </div>
+          </div>
+
+          {/* Seletor de Sexo para Calibração Biomecânica */}
+          <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-xl border border-white/5 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setGender('male')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                gender === 'male'
+                  ? 'bg-zinc-800 text-white shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Homem
+            </button>
+            <button
+              type="button"
+              onClick={() => setGender('female')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                gender === 'female'
+                  ? 'bg-zinc-800 text-white shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Mulher
+            </button>
+          </div>
+        </div>
+
+        <p className="text-xs text-zinc-300 leading-relaxed bg-black/25 p-3.5 rounded-2xl border border-white/5">
+          {evolutionDiagnosis.summary}
+        </p>
+
+        {/* COMPARATIVO DE MÉDIAS MÓVEIS (Atual vs Anterior) */}
+        {evolutionDiagnosis.status !== 'INSUFFICIENT_DATA' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 pt-1">
+            {/* Peso */}
+            <div className="p-3 rounded-2xl bg-zinc-900/70 border border-white/5">
+              <span className="text-[10px] font-medium text-zinc-400 block">Média de Peso</span>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-base font-black text-white">
+                  {evolutionDiagnosis.details.currentAvgWeight} kg
+                </span>
+                <span
+                  className={`text-[10px] font-bold ${
+                    evolutionDiagnosis.details.weightDiff > 0 ? 'text-amber-400' : 'text-zinc-400'
+                  }`}
+                >
+                  {evolutionDiagnosis.details.weightDiff > 0 ? `+${evolutionDiagnosis.details.weightDiff}` : evolutionDiagnosis.details.weightDiff}
+                </span>
+              </div>
+              <span className="text-[9px] text-zinc-500 mt-0.5 block">
+                Ant: {evolutionDiagnosis.details.previousAvgWeight} kg
+              </span>
+            </div>
+
+            {/* % Gordura */}
+            <div className="p-3 rounded-2xl bg-zinc-900/70 border border-white/5">
+              <span className="text-[10px] font-medium text-zinc-400 block">% Gordura Médio</span>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-base font-black text-white">
+                  {evolutionDiagnosis.details.currentAvgBodyFat}%
+                </span>
+                <span
+                  className={`text-[10px] font-bold ${
+                    evolutionDiagnosis.details.bodyFatDiff <= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}
+                >
+                  {evolutionDiagnosis.details.bodyFatDiff > 0 ? `+${evolutionDiagnosis.details.bodyFatDiff}%` : `${evolutionDiagnosis.details.bodyFatDiff}%`}
+                </span>
+              </div>
+              <span className="text-[9px] text-zinc-500 mt-0.5 block">
+                Ant: {evolutionDiagnosis.details.previousAvgBodyFat}%
+              </span>
+            </div>
+
+            {/* Massa Magra */}
+            <div className="p-3 rounded-2xl bg-zinc-900/70 border border-white/5">
+              <span className="text-[10px] font-medium text-zinc-400 block">Massa Magra Média</span>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-base font-black text-white">
+                  {evolutionDiagnosis.details.currentAvgLeanMass} kg
+                </span>
+                <span
+                  className={`text-[10px] font-bold ${
+                    evolutionDiagnosis.details.leanMassDiff >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}
+                >
+                  {evolutionDiagnosis.details.leanMassDiff > 0 ? `+${evolutionDiagnosis.details.leanMassDiff}` : evolutionDiagnosis.details.leanMassDiff}
+                </span>
+              </div>
+              <span className="text-[9px] text-zinc-500 mt-0.5 block">
+                Ant: {evolutionDiagnosis.details.previousAvgLeanMass} kg
+              </span>
+            </div>
+
+            {/* Força e Cargas */}
+            <div className="p-3 rounded-2xl bg-zinc-900/70 border border-white/5">
+              <span className="text-[10px] font-medium text-zinc-400 block">Sobrecarga Treinos</span>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-base font-black text-white">
+                  {evolutionDiagnosis.details.strengthProgressionPct >= 0
+                    ? `+${evolutionDiagnosis.details.strengthProgressionPct}%`
+                    : `${evolutionDiagnosis.details.strengthProgressionPct}%`}
+                </span>
+                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              </div>
+              <span className="text-[9px] text-zinc-500 mt-0.5 block">
+                Volume nas séries
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Recomendações Práticas */}
+        {evolutionDiagnosis.recommendations.length > 0 && (
+          <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              Direcionamento Estratégico:
+            </span>
+            <ul className="flex flex-col gap-1 text-[11px] text-zinc-300">
+              {evolutionDiagnosis.recommendations.map((rec, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-[#ff3322] font-black">•</span>
+                  <span>{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* GRID RESPONSIVO: 1 coluna no Mobile, 2 colunas no Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* COLUNA ESQUERDA: Medidas Corporais & Histórico */}
+        {/* COLUNA ESQUERDA: Medidas Corporais, Gordura & Histórico */}
         <div className="flex flex-col gap-5">
+          {/* ESTIMATIVA DE % DE GORDURA CORPORAL ATUAL & COMPOSIÇÃO */}
+          {currentBodyFatEstimate && latestMeasurement && (
+            <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3.5 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Percent className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white tracking-tight">
+                      Estimativa de Gordura
+                    </h3>
+                    <p className="text-[11px] text-zinc-400">
+                      Método Antropométrico Clínico (RFM / Navy)
+                    </p>
+                  </div>
+                </div>
+
+                <span
+                  className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border"
+                  style={{
+                    backgroundColor: `${currentBodyFatEstimate.categoryColor}20`,
+                    color: currentBodyFatEstimate.categoryColor,
+                    borderColor: `${currentBodyFatEstimate.categoryColor}40`,
+                  }}
+                >
+                  {currentBodyFatEstimate.categoryLabel}
+                </span>
+              </div>
+
+              {/* Display do Percentual e Massa */}
+              <div className="flex items-baseline justify-between pt-1">
+                <div>
+                  <span className="text-3xl font-black text-white tracking-tight">
+                    {currentBodyFatEstimate.bodyFatPct}%
+                  </span>
+                  <span className="text-xs text-zinc-400 ml-1.5 font-medium">Gordura Corporal</span>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-xs font-bold text-zinc-200">
+                    Massa Magra: <strong className="text-emerald-400">{currentBodyFatEstimate.leanMassKg} kg</strong>
+                  </p>
+                  <p className="text-[10px] text-zinc-400">
+                    Massa Gorda: {currentBodyFatEstimate.fatMassKg} kg
+                  </p>
+                </div>
+              </div>
+
+              {/* Barra de escala visual com gradiente */}
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden relative">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 via-blue-500 to-amber-500 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, Math.max(10, (currentBodyFatEstimate.bodyFatPct / 35) * 100))}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[9px] text-zinc-500 font-semibold px-0.5">
+                  <span>Atleta &lt;12%</span>
+                  <span>Fitness 13-17%</span>
+                  <span>Médio 18-24%</span>
+                  <span>Acima &gt;25%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 1. BOTÃO PARA REGISTRAR MEDIDAS */}
       <button
         onClick={handleOpenNew}
@@ -753,22 +1033,22 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
             </div>
 
             <form onSubmit={handleSave} className="flex flex-col gap-4">
-              {/* Data da Medição & Peso Corporal */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Data da Medição, Peso Corporal & Altura */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div className="p-3 rounded-2xl bg-zinc-900/60 border border-white/5">
                   <div className="flex items-center gap-1.5 text-zinc-300">
                     <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                    <label className="text-[11px] font-bold">Data da Medição</label>
+                    <label className="text-[11px] font-bold">Data</label>
                   </div>
                   <input
                     type="date"
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full mt-1.5 px-3 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-xs focus:outline-none focus:border-red-500"
+                    className="w-full mt-1.5 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-bold text-xs focus:outline-none focus:border-red-500"
                   />
                   <span className="text-[9px] text-zinc-500 mt-1 block">
-                    Permite dados retroativos
+                    Data do registro
                   </span>
                 </div>
 
@@ -782,8 +1062,26 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
                     step="0.1"
                     value={formData.weight_kg}
                     onChange={(e) => setFormData({ ...formData, weight_kg: parseFloat(e.target.value) || 0 })}
-                    className="w-full mt-1.5 px-3 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white font-black text-sm focus:outline-none focus:border-red-500"
+                    className="w-full mt-1.5 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-black text-sm focus:outline-none focus:border-red-500"
                   />
+                </div>
+
+                <div className="p-3 rounded-2xl bg-zinc-900/60 border border-white/5">
+                  <div className="flex items-center gap-1.5 text-zinc-300">
+                    <Ruler className="w-3.5 h-3.5 text-blue-400" />
+                    <label className="text-[11px] font-bold">Altura (cm)</label>
+                  </div>
+                  <input
+                    type="number"
+                    step="1"
+                    placeholder="Ex: 175"
+                    value={formData.height_cm}
+                    onChange={(e) => setFormData({ ...formData, height_cm: parseFloat(e.target.value) || 175 })}
+                    className="w-full mt-1.5 px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white font-black text-sm focus:outline-none focus:border-blue-400"
+                  />
+                  <span className="text-[9px] text-zinc-500 mt-1 block">
+                    Para % de gordura
+                  </span>
                 </div>
               </div>
 
