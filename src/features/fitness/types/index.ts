@@ -79,6 +79,7 @@ export interface WorkoutSetLog {
   reps_performed: number;
   rpe?: number; // 1 a 10
   completed: boolean;
+  notes?: string;
 }
 
 export interface ExerciseSessionLog {

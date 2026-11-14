@@ -18,7 +18,9 @@ import { FigmaActivityScreen } from './features/fitness/components/FigmaActivity
 import { FigmaEvolutionScreen } from './features/fitness/components/FigmaEvolutionScreen';
 import { AICoachPanel } from './features/fitness/components/AICoachPanel';
 import { FigmaLoginScreen } from './features/fitness/components/FigmaLoginScreen';
+import { FigmaPostWorkoutCelebrationModal } from './features/fitness/components/FigmaPostWorkoutCelebrationModal';
 import { calculateVolumeLoad } from './features/fitness/utils/progressionLogic';
+import { SessionPersonalRecord } from './features/fitness/utils/prLogic';
 import { CloudSyncService } from './features/fitness/services/cloudSyncService';
 import { Trophy } from 'lucide-react';
 
@@ -46,8 +48,9 @@ export default function App() {
   const [previewWorkoutDay, setPreviewWorkoutDay] = useState<WorkoutPlanDay | null>(null);
   const [activeExecutingDay, setActiveExecutingDay] = useState<WorkoutPlanDay | null>(null);
 
-  // Modal de Celebração de Treino Concluído
+  // Modal de Celebração de Treino Concluído & Recordes
   const [completedCelebrationSession, setCompletedCelebrationSession] = useState<WorkoutSession | null>(null);
+  const [sessionPersonalRecords, setSessionPersonalRecords] = useState<SessionPersonalRecord[]>([]);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
 
   // Plano ativo
@@ -89,12 +92,13 @@ export default function App() {
     return diffDays <= 30;
   }).length;
 
-  // Finalização do Treino com Auto-Sync em Nuvem (Google Drive)
-  const handleFinishWorkout = (newSession: WorkoutSession) => {
+  // Finalização do Treino com Auto-Sync em Nuvem (Google Drive) e Recordes
+  const handleFinishWorkout = (newSession: WorkoutSession, prs?: SessionPersonalRecord[]) => {
     const updated = FitnessStorageService.addSession(newSession);
     setSessions(updated);
     setActiveExecutingDay(null);
     setPreviewWorkoutDay(null);
+    setSessionPersonalRecords(prs || []);
     setCompletedCelebrationSession(newSession);
 
     // Auto-backup no Google Drive silencioso se a conta estiver conectada
@@ -247,54 +251,22 @@ export default function App() {
           />
         )}
 
-        {/* MODAL DE CELEBRAÇÃO DE TREINO CONCLUÍDO */}
+        {/* MODAL ÉPICO DE CELEBRAÇÃO DE TREINO CONCLUÍDO */}
         {completedCelebrationSession && (
-          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-[#18181b] border border-white/10 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#ff1a00] to-orange-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-950/60">
-                <Trophy className="w-8 h-8 stroke-[2.5]" />
-              </div>
-
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                Treino Finalizado
-              </span>
-              <h3 className="text-2xl font-black text-white mt-1">
-                {completedCelebrationSession.plan_day_title}
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3 my-5">
-                <div className="bg-zinc-900/80 p-3 rounded-2xl border border-white/5">
-                  <span className="text-[10px] text-zinc-400 block font-semibold">Duração</span>
-                  <span className="text-lg font-black text-white">
-                    {completedCelebrationSession.duration_minutes} min
-                  </span>
-                </div>
-
-                <div className="bg-zinc-900/80 p-3 rounded-2xl border border-white/5">
-                  <span className="text-[10px] text-zinc-400 block font-semibold">Volume Total</span>
-                  <span className="text-lg font-black text-white">
-                    {calculateVolumeLoad(
-                      Object.values(completedCelebrationSession.exercises_logs)
-                        .flat()
-                        .filter((s) => s.completed)
-                    ).toLocaleString('pt-BR')}{' '}
-                    kg
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-xs text-zinc-400 leading-relaxed mb-6">
-                Todas as cargas, repetições e notas foram salvas com sucesso. A sugestão de progressão para a próxima sessão já foi recalculada!
-              </p>
-
-              <button
-                onClick={() => setCompletedCelebrationSession(null)}
-                className="w-full py-4 rounded-2xl bg-[#ff1a00] hover:bg-red-600 text-white font-extrabold text-sm shadow-xl shadow-red-950/50 transition-all cursor-pointer active:scale-95"
-              >
-                Continuar
-              </button>
-            </div>
-          </div>
+          <FigmaPostWorkoutCelebrationModal
+            session={completedCelebrationSession}
+            previousSession={
+              sessions.find(
+                (s) =>
+                  s.id !== completedCelebrationSession.id &&
+                  (s.plan_day_id === completedCelebrationSession.plan_day_id ||
+                    s.plan_day_title?.trim().toLowerCase() ===
+                      completedCelebrationSession.plan_day_title?.trim().toLowerCase())
+              ) || null
+            }
+            personalRecords={sessionPersonalRecords}
+            onClose={() => setCompletedCelebrationSession(null)}
+          />
         )}
         </main>
       </div>

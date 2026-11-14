@@ -13,14 +13,40 @@ export interface CloudSyncConfig {
 }
 
 const CLOUD_CONFIG_KEY = 'ph_cloud_sync_config_v1';
+const CUSTOM_CLIENT_ID_KEY = 'ph_custom_google_client_id';
 const BACKUP_FILENAME = 'personal_hub_backup.json';
 
 // Client ID público padrão para o Personal HUB
-export const GOOGLE_CLIENT_ID =
+export const DEFAULT_GOOGLE_CLIENT_ID =
   (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ||
   '812493018249-personalhubdemo.apps.googleusercontent.com';
 
 export class CloudSyncService {
+  /**
+   * Obtém o Client ID do Google ativo (salvo no navegador ou do ambiente)
+   */
+  static getClientId(): string {
+    const saved = localStorage.getItem(CUSTOM_CLIENT_ID_KEY);
+    if (saved && saved.trim()) return saved.trim();
+    return DEFAULT_GOOGLE_CLIENT_ID;
+  }
+
+  /**
+   * Salva um Client ID do Google personalizado informado pelo usuário
+   */
+  static setClientId(clientId: string) {
+    if (!clientId.trim()) {
+      localStorage.removeItem(CUSTOM_CLIENT_ID_KEY);
+    } else {
+      localStorage.setItem(CUSTOM_CLIENT_ID_KEY, clientId.trim());
+    }
+  }
+
+  static isUsingCustomClientId(): boolean {
+    const saved = localStorage.getItem(CUSTOM_CLIENT_ID_KEY);
+    return Boolean(saved && saved.trim());
+  }
+
   static getConfig(): CloudSyncConfig {
     try {
       const data = localStorage.getItem(CLOUD_CONFIG_KEY);
@@ -32,6 +58,18 @@ export class CloudSyncService {
 
   static saveConfig(config: CloudSyncConfig) {
     localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+  }
+
+  /**
+   * Desconecta a conta do Google localmente
+   */
+  static disconnectGoogle() {
+    const current = this.getConfig();
+    current.google_access_token = undefined;
+    current.user_email = undefined;
+    current.user_avatar = undefined;
+    current.user_name = undefined;
+    this.saveConfig(current);
   }
 
   /**
@@ -49,12 +87,19 @@ export class CloudSyncService {
     }
 
     try {
+      const activeClientId = this.getClientId();
       const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
+        client_id: activeClientId,
         scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
         callback: async (response: any) => {
           if (response.error) {
-            onError(new Error(response.error_description || response.error));
+            let errorMsg = response.error_description || response.error;
+            if (response.error === 'popup_closed_by_user') {
+              errorMsg = 'A janela de autenticação do Google foi fechada.';
+            } else if (response.error === 'access_denied') {
+              errorMsg = 'Acesso ao Google Drive não autorizado pelo usuário.';
+            }
+            onError(new Error(errorMsg));
             return;
           }
 
@@ -89,8 +134,12 @@ export class CloudSyncService {
       });
 
       tokenClient.requestAccessToken({ prompt: 'consent' });
-    } catch (err) {
-      onError(err);
+    } catch (err: any) {
+      let msg = err?.message || 'Falha ao iniciar autenticação com o Google.';
+      if (msg.includes('OAuth client') || msg.includes('invalid_client')) {
+        msg = 'O Client ID do Google precisa ser configurado com a URL do seu app.';
+      }
+      onError(new Error(msg));
     }
   }
 

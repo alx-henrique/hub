@@ -111,6 +111,47 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
 
+  // Streak de semanas consecutivas com >= 3 treinos
+  const streakWeeksCount = (() => {
+    const weekMap = new Map<string, number>();
+    sessions.forEach((s) => {
+      const d = new Date(s.started_at);
+      const oneJan = new Date(d.getFullYear(), 0, 1);
+      const weekNum = Math.ceil(((d.getTime() - oneJan.getTime()) / 86400000 + oneJan.getDay() + 1) / 7);
+      const key = `${d.getFullYear()}-W${weekNum}`;
+      weekMap.set(key, (weekMap.get(key) || 0) + 1);
+    });
+    let count = 0;
+    weekMap.forEach((v) => {
+      if (v >= 3) count++;
+    });
+    return count;
+  })();
+
+  const COACH_TIPS = [
+    {
+      tag: 'Hipertrofia',
+      text: 'O descanso entre séries de 2 a 3 min em compostos aumenta a síntese proteica total.',
+    },
+    {
+      tag: 'Sobrecarga',
+      text: 'Bater +1 repetição com a mesma carga gera o mesmo estímulo de hipertrofia que subir 1kg.',
+    },
+    {
+      tag: 'Recuperação',
+      text: 'É durante o sono profundo que 70% do hormônio do crescimento (GH) é liberado para reparo.',
+    },
+    {
+      tag: 'Biomecânica',
+      text: 'Controle a fase excêntrica (descida de 2-3s): ela é responsável por até 60% do dano mecânico positivo.',
+    },
+    {
+      tag: 'Nutrição',
+      text: 'Atingir 1.6 a 2.2g de proteína por kg corporal diariamente sustenta a recuperação muscular.',
+    },
+  ];
+  const tipOfTheDay = COACH_TIPS[now.getDate() % COACH_TIPS.length];
+
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -264,6 +305,32 @@ export const FigmaHomeScreen: React.FC<FigmaHomeScreenProps> = ({
             Meta sugerida: 16 treinos mensais
           </p>
         </div>
+      </div>
+
+      {/* CARD DICA DO COACH / STREAK SEMANAL */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#141418] via-[#121215] to-[#141418] border border-white/5 p-3.5 flex items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+              Dica Pro • {tipOfTheDay.tag}
+            </span>
+            <p className="text-xs text-zinc-300 font-medium line-clamp-2 leading-snug">
+              {tipOfTheDay.text}
+            </p>
+          </div>
+        </div>
+        {streakWeeksCount > 0 && (
+          <div
+            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-black shadow-sm"
+            title="Semanas consecutivas com 3 ou mais treinos"
+          >
+            <Flame className="w-4 h-4 fill-orange-400 text-orange-500" />
+            <span>{streakWeeksCount} sem</span>
+          </div>
+        )}
       </div>
 
       {/* 4. SEÇÃO "SUA FICHA" / PRÓXIMO TREINO */}
