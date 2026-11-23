@@ -59,6 +59,7 @@ export interface WorkoutPlanDay {
   day_name: string; // Ex: "Treino A - Peito e Tríceps"
   order_index: number;
   exercises: WorkoutPlanExercise[];
+  is_rest?: boolean;
 }
 
 export interface WorkoutPlan {
@@ -97,6 +98,7 @@ export interface WorkoutSession {
   duration_minutes?: number;
   notes?: string;
   exercises_logs: Record<string, WorkoutSetLog[]>; // exercise_id -> sets
+  is_rest?: boolean;
 }
 
 export interface BodyMeasurement {

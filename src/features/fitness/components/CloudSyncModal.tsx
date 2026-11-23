@@ -15,6 +15,8 @@ import {
   Key,
   FolderArchive,
   ArrowRight,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 
 interface CloudSyncModalProps {
@@ -128,10 +130,28 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
   };
 
   const handleDisconnectGoogle = () => {
-    if (confirm('Deseja desconectar sua conta Google deste dispositivo? Seus dados locais serão preservados.')) {
-      CloudSyncService.disconnectGoogle();
+    if (confirm('Deseja desvincular sua conta Google deste dispositivo? Seus dados locais serão preservados.')) {
+      CloudSyncService.disconnectGoogle(true);
       setConfig(CloudSyncService.getConfig());
-      setStatusMessage({ text: 'Conta Google desconectada com sucesso.', type: 'info' });
+      setStatusMessage({ text: 'Conta Google desvinculada com sucesso.', type: 'info' });
+    }
+  };
+
+  const handleResetAndRetry = () => {
+    CloudSyncService.disconnectGoogle(true);
+    setConfig(CloudSyncService.getConfig());
+    setStatusMessage({
+      text: 'Sessão anterior desvinculada. Abrindo seletor de contas do Google...',
+      type: 'info',
+    });
+    handleConnectGoogle();
+  };
+
+  const handleClearClientId = () => {
+    if (confirm('Deseja redefinir o Client ID para o valor padrão?')) {
+      CloudSyncService.setClientId('');
+      setClientIdInput('');
+      setStatusMessage({ text: 'Client ID redefinido com sucesso.', type: 'info' });
     }
   };
 
@@ -368,6 +388,25 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
                     <span>Restaurar do Drive</span>
                   </button>
                 </div>
+
+                <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleDisconnectGoogle}
+                    className="w-full py-2.5 px-3 rounded-xl bg-zinc-800/80 hover:bg-red-950/40 border border-white/5 hover:border-red-500/30 text-zinc-300 hover:text-red-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Desvincular Esta Conta Google</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetAndRetry}
+                    className="w-full py-1.5 px-3 text-[11px] font-semibold text-zinc-400 hover:text-amber-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Desvincular e Trocar de Conta</span>
+                  </button>
+                </div>
               </div>
             ) : (
               /* DESCONECTADO */
@@ -407,6 +446,15 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
                       </svg>
                     )}
                     <span>{loading ? 'Conectando...' : 'Vincular Minha Conta Google'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetAndRetry}
+                    className="w-full py-2.5 px-3 rounded-xl border border-white/10 hover:border-amber-500/40 hover:bg-amber-500/10 text-zinc-400 hover:text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Limpar Sessão e Refazer do Zero (Trocar Conta)</span>
                   </button>
                 </div>
 
@@ -466,6 +514,17 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
                 <span>{clientIdSaved ? '✓ Salvo com Sucesso!' : 'Salvar Client ID e Prosseguir'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+
+              <div className="flex items-center justify-end pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleClearClientId}
+                  className="text-[11px] text-zinc-500 hover:text-red-400 flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Limpar / Redefinir Client ID</span>
+                </button>
+              </div>
             </div>
 
             {/* BOTÃO COPIAR URL DO APP */}

@@ -425,6 +425,94 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
   const warmupSet2Weight = Math.max(10, Math.round((targetWorkingWeight * 0.7) / 2) * 2);
 
   // ---------------------------------------------------------------------------
+  // SE FOR DIA DE DESCANSO OU NÃO HOUVER EXERCÍCIOS CADASTRADOS NA SESSÃO
+  // Evita qualquer crash de leitura de propriedades e oferece experiência completa
+  if (
+    !sessionExercises ||
+    sessionExercises.length === 0 ||
+    planDay.day_name.toLowerCase().includes('descanso')
+  ) {
+    return (
+      <div
+        className="fixed inset-0 z-50 bg-[#0a0a0c] overflow-y-auto flex flex-col items-center justify-center p-4 text-white"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div className="w-full max-w-md rounded-3xl card-glass p-6 sm:p-8 flex flex-col items-center text-center gap-5 shadow-2xl relative overflow-hidden border-white/[0.08]">
+          <div className="w-16 h-16 rounded-3xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-[0_0_24px_rgba(59,130,246,0.3)]">
+            <Sparkles className="w-8 h-8 stroke-[2.2]" />
+          </div>
+
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              Recuperação Ativa
+            </span>
+            <h2 className="text-2xl font-black text-white tracking-tight mt-2.5">
+              {planDay.day_name}
+            </h2>
+            <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+              O descanso é o momento onde seus músculos reconstroem as fibras musculares e o sistema nervoso central se regenera para o próximo ciclo de sobrecarga progressiva.
+            </p>
+          </div>
+
+          <div className="w-full grid grid-cols-3 gap-2 py-2 text-center text-xs">
+            <div className="p-3 rounded-2xl bg-zinc-900/60 border border-white/5">
+              <span className="text-base block">💤</span>
+              <span className="font-bold text-white text-[11px] block mt-1">Sono 8h</span>
+              <span className="text-[9px] text-zinc-500">Reparo GH</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-zinc-900/60 border border-white/5">
+              <span className="text-base block">💧</span>
+              <span className="font-bold text-white text-[11px] block mt-1">35ml/kg</span>
+              <span className="text-[9px] text-zinc-500">Hidratação</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-zinc-900/60 border border-white/5">
+              <span className="text-base block">🥩</span>
+              <span className="font-bold text-white text-[11px] block mt-1">2g/kg</span>
+              <span className="text-[9px] text-zinc-500">Proteína</span>
+            </div>
+          </div>
+
+          <div className="w-full flex flex-col gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                const restSession: WorkoutSession = {
+                  id: `rest-${Date.now()}`,
+                  plan_day_id: planDay.id,
+                  plan_day_title: planDay.day_name,
+                  started_at: new Date(startTime).toISOString(),
+                  completed_at: new Date().toISOString(),
+                  duration_minutes: 0,
+                  exercises_logs: {},
+                  is_rest: true,
+                  notes: 'Dia de descanso registrado',
+                };
+                playRestCompleteSound();
+                triggerHaptic('success');
+                onFinishWorkout(restSession);
+              }}
+              className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all active:scale-[0.99] cursor-pointer"
+            >
+              <Check className="w-4 h-4 stroke-[3]" />
+              <span>Marcar Descanso Concluído</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Voltar ao Início
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-[#0d0d0d] overflow-y-auto flex flex-col text-white pb-16"
@@ -512,10 +600,12 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
 
               {/* TIMER DE DESCANSO INTERATIVO */}
               {restSecondsRemaining > 0 && (
-                <div className="absolute inset-x-3 bottom-3 py-2 px-3 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 flex items-center justify-between text-xs shadow-xl">
+                <div className="absolute inset-x-3 bottom-3 py-2 px-3 rounded-2xl bg-black/90 backdrop-blur-xl border border-white/20 flex items-center justify-between text-xs shadow-2xl">
                   <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                    <Clock className="w-4 h-4 animate-spin text-emerald-400" />
-                    <span className="font-mono text-sm tracking-tight">
+                    <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <span className="font-mono text-sm tracking-tight font-extrabold">
                       {restSecondsRemaining}s
                     </span>
                   </div>
@@ -525,7 +615,7 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                     <button
                       type="button"
                       onClick={() => setRestSecondsRemaining((prev) => Math.max(0, prev - 15))}
-                      className="px-2 py-0.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold"
+                      className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold transition-all active:scale-95 cursor-pointer"
                       title="Subtrair 15 segundos"
                     >
                       -15s
@@ -533,14 +623,14 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                     <button
                       type="button"
                       onClick={() => setRestSecondsRemaining((prev) => prev + 30)}
-                      className="px-2 py-0.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold"
+                      className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold transition-all active:scale-95 cursor-pointer"
                       title="Adicionar 30 segundos"
                     >
                       +30s
                     </button>
                     <button
                       onClick={() => setRestSecondsRemaining(0)}
-                      className="ml-1 px-2 py-0.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 text-[10px] font-bold border border-red-500/20"
+                      className="ml-1 px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 text-[10px] font-bold border border-red-500/30 transition-all active:scale-95 cursor-pointer"
                     >
                       Pular
                     </button>
@@ -794,7 +884,7 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
 
                           <div className="flex items-center justify-between sm:justify-end gap-2 pt-0.5">
                             {/* Input Peso com Ajuste Rápido (- / +) */}
-                            <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-xl border border-white/5 flex-1 sm:flex-none justify-between sm:justify-start">
+                            <div className="flex items-center gap-1.5 bg-[#141418] p-1 rounded-xl border border-white/[0.08] flex-1 sm:flex-none justify-between sm:justify-start shadow-inner">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -806,7 +896,7 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                                     Math.max(0, cur - 1)
                                   );
                                 }}
-                                className="w-7 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-bold active:scale-95"
+                                className="w-7 h-8 rounded-lg bg-zinc-800/90 text-zinc-300 hover:text-white hover:bg-zinc-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer"
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
@@ -822,7 +912,7 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                                     parseFloat(e.target.value) || 0
                                   )
                                 }
-                                className="w-14 h-8 rounded-lg bg-white text-black font-extrabold text-sm text-center focus:outline-none focus:ring-2 focus:ring-red-500 shadow-inner"
+                                className="w-14 h-8 rounded-lg bg-[#202027] text-white font-extrabold text-sm text-center border border-white/10 focus:outline-none focus:border-[#ff3322] focus:ring-2 focus:ring-[#ff3322]/25 shadow-inner transition-colors"
                                 inputMode="decimal"
                                 placeholder={lastPerf ? String(lastPerf.weight) : '0'}
                               />
@@ -832,17 +922,17 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                                   const cur = Number(set.weight_kg) || 0;
                                   updateSetField(ex.exercise_id, idx, 'weight_kg', cur + 1);
                                 }}
-                                className="w-7 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-bold active:scale-95"
+                                className="w-7 h-8 rounded-lg bg-zinc-800/90 text-zinc-300 hover:text-white hover:bg-zinc-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
-                              <span className="text-[10px] text-zinc-500 pr-1 font-bold">
+                              <span className="text-[10px] text-zinc-400 pr-1 font-bold">
                                 kg
                               </span>
                             </div>
 
                             {/* Input Rep com Ajuste Rápido (- / +) */}
-                            <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-xl border border-white/5 flex-1 sm:flex-none justify-between sm:justify-start">
+                            <div className="flex items-center gap-1.5 bg-[#141418] p-1 rounded-xl border border-white/[0.08] flex-1 sm:flex-none justify-between sm:justify-start shadow-inner">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -854,7 +944,7 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                                     Math.max(0, cur - 1)
                                   );
                                 }}
-                                className="w-7 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-bold active:scale-95"
+                                className="w-7 h-8 rounded-lg bg-zinc-800/90 text-zinc-300 hover:text-white hover:bg-zinc-700 flex items-center justify-center font-bold active:scale-95 transition-all cursor-pointer"
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
@@ -869,7 +959,7 @@ export const FigmaWorkoutExecution: React.FC<FigmaWorkoutExecutionProps> = ({
                                     parseInt(e.target.value) || 0
                                   )
                                 }
-                                className="w-12 h-8 rounded-lg bg-white text-black font-extrabold text-sm text-center focus:outline-none focus:ring-2 focus:ring-red-500 shadow-inner"
+                                className="w-12 h-8 rounded-lg bg-[#202027] text-white font-extrabold text-sm text-center border border-white/10 focus:outline-none focus:border-[#ff3322] focus:ring-2 focus:ring-[#ff3322]/25 shadow-inner transition-colors"
                                 inputMode="numeric"
                                 placeholder={lastPerf ? String(lastPerf.reps) : '0'}
                               />

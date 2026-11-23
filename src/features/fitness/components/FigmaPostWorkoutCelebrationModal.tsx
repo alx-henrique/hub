@@ -194,7 +194,7 @@ export const FigmaPostWorkoutCelebrationModal: React.FC<FigmaPostWorkoutCelebrat
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-4 rounded-2xl bg-[#ff1a00] hover:bg-red-600 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-red-950/50 transition-all active:scale-[0.99] cursor-pointer"
+            className="w-full py-4 rounded-2xl btn-brand-primary font-black text-sm uppercase tracking-wider cursor-pointer"
           >
             Continuar para o Início
           </button>

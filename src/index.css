@@ -2,23 +2,24 @@
 
 @layer base {
   :root {
-    --color-bg-primary: #09090b;
+    --color-bg-base: #0a0a0c;
     --color-bg-card: #121215;
-    --color-bg-card-hover: #18181c;
-    --color-brand-red: #ff2a14;
+    --color-bg-card-hover: #17171c;
+    --color-bg-elevated: #1a1a20;
+    --color-brand-red: #ff3322;
     --color-brand-emerald: #10b981;
     --color-brand-amber: #f59e0b;
   }
 
   body {
-    background-color: #070709;
+    background-color: #0a0a0c;
     color: #f4f4f5;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     touch-action: manipulation;
-    /* Safe area para PWA (evita conteúdo atrás da status bar do celular) */
+    /* Safe area para PWA */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
@@ -31,31 +32,61 @@
   }
 }
 
-/* Modern minimal dark glass & card styling */
-.card-premium {
-  background: #111114;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6);
+/* Glassmorphism & High-End Card Surfaces */
+.card-glass {
+  background: linear-gradient(180deg, rgba(22, 22, 27, 0.95) 0%, rgba(16, 16, 20, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 8px 24px -4px rgba(0, 0, 0, 0.6);
 }
 
-.card-premium-interactive {
-  background: #111114;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.card-glass-interactive {
+  background: linear-gradient(180deg, rgba(22, 22, 27, 0.95) 0%, rgba(16, 16, 20, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 8px 24px -4px rgba(0, 0, 0, 0.6);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.card-premium-interactive:hover {
-  background: #15151a;
-  border-color: rgba(255, 255, 255, 0.12);
+.card-glass-interactive:hover {
+  background: linear-gradient(180deg, rgba(28, 28, 34, 0.98) 0%, rgba(20, 20, 26, 0.98) 100%);
+  border-color: rgba(255, 255, 255, 0.16);
   transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14), 0 12px 28px -6px rgba(0, 0, 0, 0.7);
 }
-.card-premium-interactive:active {
+.card-glass-interactive:active {
   transform: scale(0.985);
 }
 
-.card-brand-glow {
-  background: linear-gradient(145deg, #181112 0%, #111114 100%);
-  border: 1px solid rgba(255, 42, 20, 0.25);
-  box-shadow: 0 12px 30px -8px rgba(255, 42, 20, 0.2);
+/* Brand glow cards */
+.card-glow-red {
+  background: linear-gradient(145deg, #1f1315 0%, #131317 100%);
+  border: 1px solid rgba(255, 51, 34, 0.35);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 12px 32px -8px rgba(255, 51, 34, 0.25);
+}
+
+.card-glow-emerald {
+  background: linear-gradient(145deg, #0e1c16 0%, #121516 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 12px 32px -8px rgba(16, 185, 129, 0.2);
+}
+
+.card-glow-amber {
+  background: linear-gradient(145deg, #1c1810 0%, #141314 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 12px 32px -8px rgba(245, 158, 11, 0.2);
+}
+
+/* Button & Action Glows */
+.btn-brand-primary {
+  background-color: #ff3322;
+  color: #ffffff;
+  box-shadow: 0 4px 20px -2px rgba(255, 51, 34, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-brand-primary:hover {
+  background-color: #e62a1a;
+  box-shadow: 0 6px 24px -2px rgba(255, 51, 34, 0.6);
+}
+.btn-brand-primary:active {
+  transform: scale(0.98);
 }
 
 /* Custom minimal dark scrollbar */
@@ -89,10 +120,10 @@
 /* Glowing pulses and highlights */
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(255, 26, 0, 0.4);
+    box-shadow: 0 0 16px rgba(255, 51, 34, 0.35);
   }
   50% {
-    box-shadow: 0 0 30px rgba(255, 26, 0, 0.7);
+    box-shadow: 0 0 28px rgba(255, 51, 34, 0.6);
   }
 }
 
@@ -113,11 +144,11 @@ input[type="number"]:focus {
 
 /* Fade-in animation for modals and expanding cards */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeIn {
-  animation: fadeIn 0.25s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
 /* Prevent overscroll bounce on iOS */

@@ -49,11 +49,11 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   ];
 
   return (
-    <aside className="hidden md:flex flex-col fixed top-0 bottom-0 left-0 w-64 lg:w-72 bg-[#0e0e11] border-r border-white/5 z-40 select-none">
+    <aside className="hidden md:flex flex-col fixed top-0 bottom-0 left-0 w-64 lg:w-72 bg-[#0b0b0e] border-r border-white/[0.08] z-40 select-none shadow-2xl">
       {/* 1. BRAND HEADER */}
-      <div className="p-6 pb-4 border-b border-white/5 flex items-center justify-between">
+      <div className="p-6 pb-4 border-b border-white/[0.08] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#ff1a00] to-orange-500 flex items-center justify-center text-white shadow-lg shadow-red-950/50">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#ff3322] to-orange-500 flex items-center justify-center text-white shadow-lg shadow-red-950/60 ring-1 ring-white/20">
             <Dumbbell className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
@@ -71,16 +71,16 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       </div>
 
       {/* 2. USER PROFILE BADGE */}
-      <div className="px-5 py-4 border-b border-white/5 bg-zinc-900/30">
+      <div className="px-5 py-4 border-b border-white/[0.08] bg-zinc-900/40">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-200 font-bold text-sm shadow-inner flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-zinc-800/90 border border-white/10 flex items-center justify-center text-zinc-200 font-bold text-sm shadow-inner flex-shrink-0">
               {userName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-white truncate">{userName}</p>
               <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#10b981]" />
                 {weeklyWorkoutsCount} {weeklyWorkoutsCount === 1 ? 'treino nesta semana' : 'treinos nesta semana'}
               </p>
             </div>
@@ -104,14 +104,14 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               onClick={() => onChangeTab(item.id)}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-left transition-all duration-200 group cursor-pointer ${
                 isActive
-                  ? 'bg-gradient-to-r from-[#ff3322]/20 via-[#ff3322]/10 to-transparent text-white border-l-4 border-[#ff3322] font-bold shadow-md'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5 font-medium'
+                  ? 'bg-gradient-to-r from-[#ff3322]/15 via-[#ff3322]/5 to-transparent text-white border-l-4 border-[#ff3322] font-bold shadow-md shadow-red-950/20'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04] font-medium'
               }`}
             >
               <div
-                className={`p-1.5 rounded-xl transition-all ${
+                className={`p-2 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-[#ff3322] text-white shadow-md shadow-red-950/60'
+                    ? 'bg-[#ff3322] text-white shadow-md shadow-red-950/60 ring-1 ring-white/20'
                     : 'bg-zinc-800/80 text-zinc-400 group-hover:text-white group-hover:bg-zinc-700'
                 }`}
               >
@@ -129,17 +129,23 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
         {/* ATALHO RÁPIDO: TREINO SUGERIDO */}
         {suggestedWorkout && onStartSuggestedWorkout && (
-          <div className="mt-4 pt-4 border-t border-white/5 px-1">
+          <div className="mt-4 pt-4 border-t border-white/[0.08] px-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block pb-2">
               Pronto para treinar?
             </span>
             <button
               onClick={() => onStartSuggestedWorkout(suggestedWorkout)}
-              className="w-full p-3 rounded-2xl bg-gradient-to-br from-[#1a1214] to-[#121215] border border-[#ff3322]/30 hover:border-[#ff3322]/60 text-left transition-all group shadow-lg cursor-pointer"
+              className="w-full p-3.5 rounded-2xl bg-gradient-to-br from-[#1d1315] to-[#121215] border border-[#ff3322]/30 hover:border-[#ff3322]/60 text-left transition-all group shadow-lg cursor-pointer"
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#ff3322]/20 text-[#ff3322]">
-                  Sugerido
+                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                  suggestedWorkout.day_name.toLowerCase().includes('descanso') || !suggestedWorkout.exercises || suggestedWorkout.exercises.length === 0
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                    : 'bg-[#ff3322]/20 text-[#ff3322] border-[#ff3322]/30'
+                }`}>
+                  {suggestedWorkout.day_name.toLowerCase().includes('descanso') || !suggestedWorkout.exercises || suggestedWorkout.exercises.length === 0
+                    ? 'Descanso'
+                    : 'Sugerido'}
                 </span>
                 <Play className="w-3.5 h-3.5 text-[#ff3322] fill-[#ff3322] group-hover:scale-110 transition-transform" />
               </div>
@@ -147,7 +153,9 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 {suggestedWorkout.day_name}
               </p>
               <p className="text-[10px] text-zinc-400 mt-0.5">
-                {suggestedWorkout.exercises.length} exercícios na sequência
+                {suggestedWorkout.day_name.toLowerCase().includes('descanso') || !suggestedWorkout.exercises || suggestedWorkout.exercises.length === 0
+                  ? 'Recuperação e descanso ativo'
+                  : `${suggestedWorkout.exercises.length} exercícios na sequência`}
               </p>
             </button>
           </div>
@@ -155,7 +163,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       </nav>
 
       {/* 4. FOOTER: NUVEM / BACKUP & RESET */}
-      <div className="p-4 border-t border-white/5 flex flex-col gap-2.5 bg-[#0a0a0d]">
+      <div className="p-4 border-t border-white/[0.08] flex flex-col gap-2.5 bg-[#08080a]">
         <button
           onClick={onOpenCloudModal}
           className="w-full flex items-center justify-between p-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-white/5 transition-all text-left cursor-pointer group"

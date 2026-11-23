@@ -628,34 +628,34 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
           {/* 1. BOTÃO PARA REGISTRAR MEDIDAS */}
       <button
         onClick={handleOpenNew}
-        className="w-full text-left rounded-3xl bg-gradient-to-r from-[#181510] to-[#121215] border border-amber-500/30 p-5 shadow-lg hover:border-amber-500/50 transition-all flex items-center justify-between group active:scale-[0.99] cursor-pointer"
+        className="w-full text-left rounded-3xl card-glow-amber p-5 shadow-xl hover:border-amber-500/60 transition-all flex items-center justify-between group active:scale-[0.99] cursor-pointer"
       >
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+          <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 group-hover:scale-105 transition-transform shadow-[0_0_12px_rgba(245,158,11,0.25)]">
             <Ruler className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
-            <span className="text-sm font-bold text-white tracking-tight block">
+            <span className="text-sm font-black text-white tracking-tight block">
               Registrar Novas Medidas
             </span>
-            <span className="text-xs text-zinc-400 mt-0.5 block">
+            <span className="text-xs text-zinc-400 mt-0.5 block font-medium">
               Peso, ombros, peitoral, braços, cintura, coxas e panturrilhas
             </span>
           </div>
         </div>
-        <div className="w-9 h-9 rounded-xl bg-amber-500 text-black flex items-center justify-center font-black group-hover:scale-105 transition-transform flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-amber-400 text-black flex items-center justify-center font-black group-hover:scale-105 transition-transform flex-shrink-0 shadow-md shadow-amber-950/40">
           <Plus className="w-5 h-5 stroke-[3]" />
         </div>
       </button>
 
       {/* 2. GRÁFICO COM EVOLUÇÃO DAS MEDIDAS */}
-      <div className="rounded-3xl bg-[#111114] border border-white/5 p-5 flex flex-col gap-3 shadow-lg">
+      <div className="rounded-3xl card-glass p-5 flex flex-col gap-3.5 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-black text-white tracking-tight">
               Gráfico de medidas
             </h3>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-zinc-400 font-medium">
               {metricLabels[selectedMetric]}
             </p>
           </div>
@@ -664,7 +664,7 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
           <select
             value={selectedMetric}
             onChange={(e) => setSelectedMetric(e.target.value as any)}
-            className="bg-zinc-800 text-xs font-semibold text-white px-2.5 py-1.5 rounded-xl border border-white/10 focus:outline-none max-w-[150px] truncate"
+            className="bg-[#1a1a22] text-xs font-bold text-zinc-200 px-3 py-1.5 rounded-xl border border-white/10 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 max-w-[155px] truncate cursor-pointer transition-colors shadow-inner"
           >
             <option value="weight_kg">Peso (kg)</option>
             <option value="shoulders_cm">Ombros (cm)</option>
@@ -693,10 +693,11 @@ export const FigmaEvolutionScreen: React.FC<FigmaEvolutionScreenProps> = ({
                 <YAxis stroke="#71717a" fontSize={11} domain={['dataMin - 1', 'dataMax + 1']} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#18181b',
-                    borderColor: '#27272a',
-                    borderRadius: '12px',
+                    backgroundColor: '#141418',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: '16px',
                     fontSize: '12px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
                   }}
                 />
                 <Line

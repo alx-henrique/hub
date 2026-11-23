@@ -61,14 +61,24 @@ export class CloudSyncService {
   }
 
   /**
-   * Desconecta a conta do Google localmente
+   * Desconecta a conta do Google localmente e revoga autorizações anteriores
    */
-  static disconnectGoogle() {
+  static disconnectGoogle(revokeOnGoogle = true) {
     const current = this.getConfig();
+    const token = current.google_access_token;
+    if (revokeOnGoogle && token) {
+      try {
+        const google = (window as any).google;
+        if (google?.accounts?.oauth2?.revoke) {
+          google.accounts.oauth2.revoke(token, () => {});
+        }
+      } catch {}
+    }
     current.google_access_token = undefined;
     current.user_email = undefined;
     current.user_avatar = undefined;
     current.user_name = undefined;
+    current.last_sync_timestamp = undefined;
     this.saveConfig(current);
   }
 
@@ -133,7 +143,7 @@ export class CloudSyncService {
         },
       });
 
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+      tokenClient.requestAccessToken({ prompt: 'consent select_account' });
     } catch (err: any) {
       let msg = err?.message || 'Falha ao iniciar autenticação com o Google.';
       if (msg.includes('OAuth client') || msg.includes('invalid_client')) {
@@ -199,7 +209,35 @@ export class CloudSyncService {
       );
 
       if (!listRes.ok) {
-        throw new Error('Sessão do Google expirada. Conecte novamente sua conta.');
+        let errMessage = '';
+        try {
+          const errData = await listRes.json();
+          errMessage = errData.error?.message || '';
+        } catch {}
+
+        if (listRes.status === 401) {
+          throw new Error('Sessão do Google expirada. Conecte novamente sua conta.');
+        } else if (listRes.status === 403) {
+          if (
+            errMessage.includes('disabled') ||
+            errMessage.includes('has not been used') ||
+            errMessage.includes('API')
+          ) {
+            throw new Error(
+              'A "Google Drive API" ainda não foi ativada no seu projeto do Google Cloud. Ative em Biblioteca > Google Drive API > Ativar.'
+            );
+          } else if (
+            errMessage.includes('scope') ||
+            errMessage.includes('permission') ||
+            errMessage.includes('Insufficient')
+          ) {
+            throw new Error(
+              'Permissão do Google Drive não marcada. Ao fazer login, certifique-se de marcar a caixinha que autoriza o app no Drive.'
+            );
+          }
+          throw new Error(`Acesso ao Drive negado pelo Google: ${errMessage || 'verifique as permissões'}`);
+        }
+        throw new Error(errMessage || `Falha na comunicação com o Google Drive (${listRes.status})`);
       }
 
       const listData = await listRes.json();
@@ -279,7 +317,12 @@ export class CloudSyncService {
       );
 
       if (!listRes.ok) {
-        throw new Error('Falha ao autenticar no Google Drive');
+        let errMessage = '';
+        try {
+          const errData = await listRes.json();
+          errMessage = errData.error?.message || '';
+        } catch {}
+        throw new Error(errMessage || `Falha ao buscar backup no Google Drive (${listRes.status})`);
       }
 
       const listData = await listRes.json();

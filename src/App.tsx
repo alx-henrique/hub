@@ -22,6 +22,7 @@ import { FigmaPostWorkoutCelebrationModal } from './features/fitness/components/
 import { calculateVolumeLoad } from './features/fitness/utils/progressionLogic';
 import { SessionPersonalRecord } from './features/fitness/utils/prLogic';
 import { CloudSyncService } from './features/fitness/services/cloudSyncService';
+import { playRestCompleteSound, triggerHaptic } from './features/fitness/utils/audioFeedback';
 import { Trophy } from 'lucide-react';
 
 export default function App() {
@@ -108,6 +109,35 @@ export default function App() {
     }
   };
 
+  // Registrar Dia de Descanso & Recuperação com Auto-Sync
+  const handleRecordRestDay = (day?: WorkoutPlanDay) => {
+    const restDayTitle = day?.day_name || 'Descanso & Recuperação';
+    const newSession: WorkoutSession = {
+      id: `rest-${Date.now()}`,
+      plan_day_id: day?.id,
+      plan_day_title: restDayTitle,
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      duration_minutes: 0,
+      exercises_logs: {},
+      is_rest: true,
+      notes: 'Dia de descanso e recuperação ativo registrado',
+    };
+    const updated = FitnessStorageService.addSession(newSession);
+    setSessions(updated);
+    setActiveExecutingDay(null);
+    setPreviewWorkoutDay(null);
+
+    // Auto-backup no Google Drive silencioso se a conta estiver conectada
+    const cloudConfig = CloudSyncService.getConfig();
+    if (cloudConfig.google_access_token && cloudConfig.auto_sync_enabled) {
+      CloudSyncService.uploadToGoogleDrive().catch(() => {});
+    }
+
+    playRestCompleteSound();
+    triggerHaptic('success');
+  };
+
   // Adicionar ou Atualizar Medidas com Auto-Sync
   const handleAddMeasurement = (newMeas: BodyMeasurement) => {
     const updated = FitnessStorageService.addMeasurement(newMeas);
@@ -157,7 +187,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white flex">
+    <div className="min-h-screen bg-[#0a0a0c] text-white flex">
       {/* SIDEBAR LATERAL FIXA PARA NAVEGADORES DESKTOP */}
       {!activeExecutingDay && (
         <DesktopSidebar
@@ -191,6 +221,7 @@ export default function App() {
             weeklyWorkoutsCount={weeklyWorkoutsCount}
             monthlyWorkoutsCount={monthlyWorkoutsCount}
             onResetData={handleResetAllData}
+            onRecordRestDay={handleRecordRestDay}
           />
         )}
 
@@ -202,6 +233,8 @@ export default function App() {
             onBack={() => setActiveTab('home')}
             userName={userName}
             onSavePlan={handleSaveNewPlan}
+            onRecordRestDay={handleRecordRestDay}
+            sessions={sessions}
           />
         )}
 
@@ -239,6 +272,7 @@ export default function App() {
             planDay={previewWorkoutDay}
             onStart={() => setActiveExecutingDay(previewWorkoutDay)}
             onBack={() => setPreviewWorkoutDay(null)}
+            onRecordRestDay={handleRecordRestDay}
           />
         )}
 

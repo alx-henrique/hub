@@ -204,33 +204,33 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
       </div>
 
       {/* 2. OS 3 CARDS SUPERIORES MINIMALISTAS */}
-      <div className="grid grid-cols-3 divide-x divide-zinc-800/80 rounded-2xl bg-[#111114] border border-white/5 p-4 text-center shadow-md">
+      <div className="grid grid-cols-3 divide-x divide-white/[0.08] rounded-3xl card-glass p-4.5 text-center shadow-xl">
         <div className="flex flex-col items-center px-1">
           <span className="text-2xl font-black text-white tracking-tight">
             {weeklyWorkoutsCount.toString().padStart(2, '0')}
           </span>
-          <span className="text-[11px] text-zinc-400 mt-1 font-medium">Na semana</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-bold uppercase tracking-wider">Na semana</span>
         </div>
 
         <div className="flex flex-col items-center px-1">
           <span className="text-2xl font-black text-amber-400 tracking-tight">
             {weeksWithAtLeast3.toString().padStart(2, '0')}
           </span>
-          <span className="text-[11px] text-zinc-400 mt-1 font-medium">Semanas 3x+</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-bold uppercase tracking-wider">Semanas 3x+</span>
         </div>
 
         <div className="flex flex-col items-center px-1">
           <span className="text-2xl font-black text-white tracking-tight">
             {currentMonthWorkoutsCount.toString().padStart(2, '0')}
           </span>
-          <span className="text-[11px] text-zinc-400 mt-1 font-medium">No mês</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-bold uppercase tracking-wider">No mês</span>
         </div>
       </div>
 
       {/* GRID RESPONSIVO: Calendário e Histórico Anual lado a lado no Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* 3. CALENDÁRIO MENSAL */}
-        <div className="lg:col-span-7 flex flex-col gap-3 rounded-3xl bg-[#111114] border border-white/5 p-5 shadow-lg">
+        <div className="lg:col-span-7 flex flex-col gap-3.5 rounded-3xl card-glass p-5 shadow-xl">
         <div className="flex items-center justify-between">
           <button
             onClick={() => {
@@ -238,13 +238,13 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
               d.setMonth(d.getMonth() - 1);
               setCurrentDate(d);
             }}
-            className="w-8 h-8 rounded-xl bg-zinc-800/60 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+            className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 hover:text-white border border-white/5 active:scale-95 transition-all cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <h3 className="text-center text-sm font-semibold text-zinc-300">
-            <span className="font-bold text-white">{capitalizedMonthName} {currentYear}</span>
+          <h3 className="text-center text-sm font-bold text-white tracking-tight">
+            {capitalizedMonthName} {currentYear}
           </h3>
 
           <button
@@ -253,15 +253,15 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
               d.setMonth(d.getMonth() + 1);
               setCurrentDate(d);
             }}
-            className="w-8 h-8 rounded-xl bg-zinc-800/60 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+            className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 hover:text-white border border-white/5 active:scale-95 transition-all cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* Cabeçalho dos Dias (S T Q Q S S D) */}
-        <div className="grid grid-cols-8 gap-1.5 text-center text-xs font-semibold text-zinc-500 pt-1">
-          <span className="text-[10px] text-zinc-600 font-normal">Sem</span>
+        <div className="grid grid-cols-8 gap-1.5 text-center text-xs font-semibold text-zinc-400 pt-1">
+          <span className="text-[10px] text-zinc-500 font-bold uppercase">Sem</span>
           <span>S</span>
           <span>T</span>
           <span>Q</span>
@@ -275,7 +275,7 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
         <div className="flex flex-col gap-1.5">
           {calendarGrid.map((week, weekIndex) => (
             <div key={weekIndex} className="grid grid-cols-8 gap-1.5 items-center text-center">
-              <span className="text-[11px] font-mono text-zinc-600">{weekIndex + 1}</span>
+              <span className="text-[11px] font-mono text-zinc-500 font-semibold">{weekIndex + 1}</span>
 
               {week.map((day, dayIndex) => {
                 if (!day.dayNumber) {
@@ -302,12 +302,12 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
                         ? `${day.dateStr}: ${day.session?.plan_day_title} (${day.volumeKg}kg)`
                         : `Dia ${day.dayNumber}`
                     }
-                    className={`w-full aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
+                    className={`w-full aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-bold ${
                       day.trained
-                        ? 'bg-gradient-to-tr from-[#ff3322] to-red-500 text-white shadow-md shadow-red-950/40 cursor-pointer active:scale-95'
-                        : 'bg-zinc-900/50 border border-white/5 text-zinc-500'
-                    } ${day.isToday && !day.trained ? 'border-amber-400/60 text-amber-300' : ''} ${
-                      isSelected ? 'ring-2 ring-white scale-105 z-10' : ''
+                        ? 'bg-gradient-to-tr from-[#ff3322] to-red-500 text-white shadow-md shadow-red-950/40 ring-1 ring-white/20 cursor-pointer active:scale-95'
+                        : 'bg-zinc-900/60 border border-white/[0.05] text-zinc-400 hover:border-white/10'
+                    } ${day.isToday && !day.trained ? 'border-amber-400/80 text-amber-300 ring-1 ring-amber-400/30' : ''} ${
+                      isSelected ? 'ring-2 ring-white scale-105 z-10 shadow-lg' : ''
                     }`}
                   >
                     <span>{day.dayNumber}</span>
@@ -320,25 +320,25 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
 
         {/* Card de Detalhes da Sessão Selecionada */}
         {activeDetailSession && (
-          <div className="mt-2 p-3.5 rounded-2xl bg-zinc-900/90 border border-[#ff3322]/30 flex flex-col gap-1.5 animate-fadeIn">
+          <div className="mt-2 p-4 rounded-2xl card-glow-red flex flex-col gap-1.5 animate-fadeIn shadow-lg">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-bold text-[#ff3322]">
+              <span className="text-[10px] uppercase font-black tracking-wider text-[#ff3322]">
                 Treino Realizado
               </span>
-              <span className="text-[10px] text-zinc-400 font-mono">
+              <span className="text-[10px] text-zinc-400 font-mono font-semibold">
                 {new Date(activeDetailSession.started_at).toLocaleDateString('pt-BR')}
               </span>
             </div>
-            <h4 className="text-sm font-bold text-white">
+            <h4 className="text-sm font-black text-white tracking-tight">
               {activeDetailSession.plan_day_title}
             </h4>
-            <div className="flex items-center gap-3 text-xs text-zinc-400 font-medium">
+            <div className="flex items-center gap-3 text-xs text-zinc-300 font-medium">
               <span>⏱️ {activeDetailSession.duration_minutes || 45} min</span>
               <span>•</span>
               <span>
                 🏋️ {calculateVolumeLoad(
                   Object.values(activeDetailSession.exercises_logs || {}).flat()
-                ).toLocaleString('pt-BR')} kg
+                ).toLocaleString('pt-BR')} kg de volume
               </span>
             </div>
           </div>
@@ -346,31 +346,31 @@ export const FigmaActivityScreen: React.FC<FigmaActivityScreenProps> = ({ sessio
         </div>
 
         {/* 4. HISTÓRICO ANUAL */}
-        <div className="lg:col-span-5 flex flex-col gap-3 rounded-3xl bg-[#111114] border border-white/5 p-5 shadow-lg">
+        <div className="lg:col-span-5 flex flex-col gap-3.5 rounded-3xl card-glass p-5 shadow-xl">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-zinc-200">
+            <h3 className="text-sm font-bold text-white tracking-tight">
               Nesse Ano ({currentYear})
             </h3>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-[11px] text-zinc-400 font-semibold bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
               {sessions.filter((s) => new Date(s.started_at).getFullYear() === currentYear).length} treinos no total
             </span>
           </div>
 
-          <div className="flex flex-col gap-2 pt-1">
+          <div className="flex flex-col gap-2.5 pt-1">
             {annualData.map((item) => (
               <div key={item.month} className="flex items-center gap-3">
-                <span className="text-xs font-medium text-zinc-400 w-7 capitalize">
+                <span className="text-xs font-semibold text-zinc-400 w-7 capitalize">
                   {item.month}
                 </span>
 
-                <div className="flex-1 h-3 rounded-full bg-zinc-800/50 overflow-hidden flex">
+                <div className="flex-1 h-3 rounded-full bg-zinc-800/80 overflow-hidden flex ring-1 ring-white/[0.05]">
                   <div
-                    className="h-full bg-gradient-to-r from-[#ff3322] to-red-500 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-[#ff3322] to-orange-500 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(255,51,34,0.4)]"
                     style={{ width: `${item.pct}%` }}
                   />
                 </div>
 
-                <span className="text-[10px] font-bold text-zinc-500 w-5 text-right font-mono">
+                <span className="text-[10px] font-bold text-zinc-400 w-5 text-right font-mono">
                   {item.count}
                 </span>
               </div>

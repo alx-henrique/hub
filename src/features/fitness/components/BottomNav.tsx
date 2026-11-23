@@ -45,7 +45,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       )}
 
       {/* Barra de Navegação Flutuante Dark Premium */}
-      <nav className="bg-[#0e0e11]/95 backdrop-blur-2xl border-t border-white/5 px-3 py-2.5 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] flex items-center justify-around" style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))' }}>
+      <nav
+        className="bg-[#0e0e12]/92 backdrop-blur-2xl border-t border-white/[0.08] px-3 py-2 shadow-[0_-12px_36px_rgba(0,0,0,0.85)] flex items-center justify-around"
+        style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))' }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -54,22 +57,36 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <button
               key={tab.id}
               onClick={() => onChangeTab(tab.id)}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 relative ${
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-200 relative group cursor-pointer ${
                 isActive
                   ? 'text-[#ff3322]'
                   : 'text-zinc-500 hover:text-zinc-300 active:scale-95'
               }`}
             >
-              <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-[#ff3322]/10' : ''}`}>
+              <div
+                className={`p-1.5 rounded-xl transition-all duration-200 relative ${
+                  isActive
+                    ? 'bg-[#ff3322]/15 text-[#ff3322] shadow-[0_0_12px_rgba(255,51,34,0.3)]'
+                    : 'group-hover:bg-white/5'
+                }`}
+              >
                 <Icon
-                  className={`w-5 h-5 transition-transform ${
+                  className={`w-5 h-5 transition-transform duration-200 ${
                     isActive ? 'stroke-[2.2px] scale-105' : 'stroke-[1.7px]'
                   }`}
                 />
               </div>
-              <span className={`text-[10px] mt-0.5 tracking-tight transition-colors ${isActive ? 'font-bold text-white' : 'font-medium'}`}>
+              <span
+                className={`text-[10px] mt-0.5 tracking-tight transition-colors duration-200 ${
+                  isActive ? 'font-bold text-white' : 'font-medium'
+                }`}
+              >
                 {tab.label}
               </span>
+              {/* Indicador sutil de ponto luminoso ativo */}
+              {isActive && (
+                <span className="w-1 h-1 rounded-full bg-[#ff3322] shadow-[0_0_6px_#ff3322] mt-0.5 animate-pulse" />
+              )}
             </button>
           );
         })}
